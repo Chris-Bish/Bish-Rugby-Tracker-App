@@ -536,8 +536,8 @@ async function loadSeasons(){
   if(mainSel) mainSel.innerHTML = opts;
   // Set currentSeason to the current season
   const cur = data.find(s=>s.is_current);
-  currentSeason = cur ? cur.name : 'all';
-  if(mainSel) mainSel.value = currentSeason;
+  currentSeason = 'all';
+  if(mainSel) mainSel.value = 'all';
   updateSeasonLabel();
   // Populate match and training season dropdowns
   const seasonOpts = data.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
