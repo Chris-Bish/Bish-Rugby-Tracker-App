@@ -283,7 +283,7 @@ tr:hover td { background: var(--surface-1); }
 
   <div class="sec" id="s-squad">
     <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <select id="sqM" style="max-width:220px"><option value="">Select match…</option></select>
+      <select id="sqM" style="max-width:220px" onchange="loadSquadForMatch()"><option value="">Select match…</option></select>
       <input id="clubName" placeholder="Club name" style="max-width:130px" value="My RFC">
       <button class="btn" onclick="clearSq()"><i class="ti ti-refresh"></i> Clear</button>
       <button class="btn" onclick="saveSquad()"><i class="ti ti-device-floppy"></i> Save squad</button>
@@ -586,7 +586,7 @@ function show(id){
   if(id==='matches')   rMatches();
   if(id==='training')  rTraining();
   if(id==='attendance'){rAttSel();rAtt();}
-  if(id==='squad')     { rSqSel(); rPitch(); rPool(); }
+  if(id==='squad')     { rSqSel(); loadSquadForMatch(); }
   if(id==='matchday')  rMdSel();
   if(id==='stats')     rStats();
   if(id==='teamsheet') rTS();
@@ -864,6 +864,26 @@ function rSqSel(){
   const sel=document.getElementById('sqM');
   sel.innerHTML='<option value="">Select match...</option>';
   db.matches.forEach(m=>sel.innerHTML+=`<option value="${m.id}">${m.date} vs ${m.opp}</option>`);
+}
+
+function loadSquadForMatch(){
+  const mid = document.getElementById('sqM').value;
+  squad = {}; // clear current in-memory squad
+  selSlot = null;
+  if(mid){
+    // Find the most recently saved squad for this match
+    const saved = (db.squads||[])
+      .filter(s=>s.match_id==parseInt(mid))
+      .sort((a,b)=> (b.id||0)-(a.id||0))[0]; // latest save wins
+    if(saved && saved.slots){
+      // Restore slots — keys are strings ('1','2'...'b1','b2'...)
+      Object.entries(saved.slots).forEach(([k,v])=>{
+        if(v) squad[isNaN(k)?k:Number(k)] = Number(v);
+      });
+    }
+  }
+  rPitch();
+  rPool();
 }
 
 function rPitch(){
