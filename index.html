@@ -328,7 +328,8 @@ tr:hover td { background: var(--surface-1); }
   <div class="fr"><div><label>Date</label><input id="md2" type="date"></div><div><label>Competition</label><input id="mc2" placeholder="League / Cup"></div></div>
   <div class="fr"><div><label>Opposition</label><input id="mo2"></div><div><label>Venue</label><select id="mv2"><option>Home</option><option>Away</option><option>Neutral</option></select></div></div>
   <div class="fr"><div><label>Our score</label><input id="ms1" type="number" min="0" placeholder="0"></div><div><label>Their score</label><input id="ms2" type="number" min="0" placeholder="0"></div></div>
-  <div class="fr"><div><label>Status</label><select id="mst"><option>Upcoming</option><option>Played</option><option>Cancelled</option></select></div><div><label>Man of the match</label><select id="mm"><option value="">—</option></select></div></div>
+  <div class="fr"><div><label>Status</label><select id="mst"><option>Upcoming</option><option>Played</option><option>Cancelled</option></select></div><div><label>Man of the match <span style="font-size:10px;color:var(--text-muted)">(squad only)</span></label><select id="mm"><option value="">—</option></select></div></div>
+  <div class="ff"><label>The Bishy Way <span style="font-size:10px;color:var(--text-muted)">(squad only)</span></label><select id="mbw"><option value="">—</option></select></div>
   <div class="ff"><label>Try scorers <span style="font-size:10px;color:var(--text-muted)">(Ctrl/Cmd for multiple)</span></label><select id="mts" multiple size="4"></select></div>
   <div class="fr"><div><label>Yellow cards</label><select id="myc" multiple size="3"></select></div><div><label>Red cards</label><select id="mrc" multiple size="3"></select></div></div>
   <div class="ff"><label>Match notes</label><textarea id="mn2" placeholder="Report, key moments, tactics…"></textarea></div>
@@ -438,8 +439,13 @@ async function signOut(){
 
 // ── DATA LOADERS ───────────────────────────────────────────
 async function loadAll(){
-  await Promise.all([ loadPlayers(), loadMatches(), loadTraining(), loadAttendance() ]);
+  await Promise.all([ loadPlayers(), loadMatches(), loadTraining(), loadAttendance(), loadSquads() ]);
   rDash();
+}
+
+async function loadSquads(){
+  const { data, error } = await sb.from('squads').select('*');
+  if(!error) db.squads = data || [];
 }
 
 async function loadPlayers(){
@@ -466,6 +472,7 @@ async function loadMatches(){
     redCards: (rc.data||[]).filter(x=>x.match_id===m.id).map(x=>x.player_id),
     scoreUs: m.score_us,
     scoreThem: m.score_them,
+    bishy_way: m.bishy_way,
     events: m.events || [],
   }));
 }
@@ -632,6 +639,8 @@ function rMatches(){
           </div>
           <div style="font-size:11px;color:var(--text-muted)">${m.date} · ${m.comp||''}${m.status==='Played'?' · '+m.scoreUs+'–'+m.scoreThem:''}</div>
           ${(m.tryScorers||[]).length?`<div style="font-size:11px;margin-top:3px;color:var(--text-secondary)">Tries: ${[...new Set(m.tryScorers)].map(id=>{const c=(m.tryScorers||[]).filter(x=>x==id).length;return pn(id)+(c>1?' ×'+c:'')}).join(', ')}</div>`:''}
+          ${m.motm?`<div style="font-size:11px;margin-top:2px;color:var(--text-secondary)">⭐ MoM: ${pn(m.motm)}</div>`:''}
+          ${m.bishy_way?`<div style="font-size:11px;margin-top:2px;color:var(--text-secondary)">🟢 Bishy Way: ${pn(m.bishy_way)}</div>`:''}
         </div>
         <div style="display:flex;gap:5px">
           ${currentUser?`<button class="btn bs" onclick="editM(${m.id})"><i class="ti ti-edit"></i></button><button class="btn bs bd" onclick="delM(${m.id})"><i class="ti ti-trash"></i></button>`:''}
@@ -655,10 +664,19 @@ function openMM(id){
   document.getElementById('mn2').value=m?m.notes:'';
   document.getElementById('mv2').value=m?m.venue:'Home';
   document.getElementById('mst').value=m?m.status:'Upcoming';
-  const mm=document.getElementById('mm'),mts=document.getElementById('mts'),myc=document.getElementById('myc'),mrc=document.getElementById('mrc');
-  mm.innerHTML='<option value="">—</option>'; mts.innerHTML=''; myc.innerHTML=''; mrc.innerHTML='';
-  db.players.forEach(p=>{
+  const mm=document.getElementById('mm'),mbw=document.getElementById('mbw'),mts=document.getElementById('mts'),myc=document.getElementById('myc'),mrc=document.getElementById('mrc');
+  mm.innerHTML='<option value="">—</option>'; mbw.innerHTML='<option value="">—</option>';
+  mts.innerHTML=''; myc.innerHTML=''; mrc.innerHTML='';
+  // Squad players for this match (if a saved squad exists), otherwise all active players
+  const savedSquad=id?db.squads&&db.squads.find(s=>s.match_id==id):null;
+  const squadIds=savedSquad?Object.values(savedSquad.slots||{}).filter(Boolean).map(Number):null;
+  const squadPlayers=squadIds?db.players.filter(p=>squadIds.includes(p.id)):db.players.filter(p=>p.status==='Active');
+  const allPlayers=db.players;
+  squadPlayers.forEach(p=>{
     mm.innerHTML+=`<option value="${p.id}" ${m&&m.motm==p.id?'selected':''}>${p.first} ${p.last}</option>`;
+    mbw.innerHTML+=`<option value="${p.id}" ${m&&m.bishy_way==p.id?'selected':''}>${p.first} ${p.last}</option>`;
+  });
+  allPlayers.forEach(p=>{
     mts.innerHTML+=`<option value="${p.id}" ${m&&(m.tryScorers||[]).includes(p.id)?'selected':''}>${p.first} ${p.last}</option>`;
     myc.innerHTML+=`<option value="${p.id}" ${m&&(m.yellowCards||[]).includes(p.id)?'selected':''}>${p.first} ${p.last}</option>`;
     mrc.innerHTML+=`<option value="${p.id}" ${m&&(m.redCards||[]).includes(p.id)?'selected':''}>${p.first} ${p.last}</option>`;
@@ -674,7 +692,8 @@ async function saveM(){
   const yc=Array.from(document.getElementById('myc').selectedOptions).map(o=>parseInt(o.value));
   const rc=Array.from(document.getElementById('mrc').selectedOptions).map(o=>parseInt(o.value));
   const mv=document.getElementById('mm').value;
-  const mData={date,opp,venue:document.getElementById('mv2').value,score_us:parseInt(document.getElementById('ms1').value)||0,score_them:parseInt(document.getElementById('ms2').value)||0,comp:document.getElementById('mc2').value,motm:mv?parseInt(mv):null,status:document.getElementById('mst').value,notes:document.getElementById('mn2').value};
+  const mbwv=document.getElementById('mbw').value;
+  const mData={date,opp,venue:document.getElementById('mv2').value,score_us:parseInt(document.getElementById('ms1').value)||0,score_them:parseInt(document.getElementById('ms2').value)||0,comp:document.getElementById('mc2').value,motm:mv?parseInt(mv):null,bishy_way:mbwv?parseInt(mbwv):null,status:document.getElementById('mst').value,notes:document.getElementById('mn2').value};
 
   let matchId=eMid;
   if(eMid){
