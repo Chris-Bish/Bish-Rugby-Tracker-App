@@ -985,12 +985,13 @@ function rTS(){
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:6px">Starting XV</div>
-      ${starters.map(s=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:4px 0;border-bottom:0.5px solid #eee;font-size:12px;align-items:center"><span style="font-weight:700">${s.num}</span><div><div style="font-weight:600">${s.p?s.p.first+' '+s.p.last:'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${s.pos}</div></div><div style="font-size:10px;color:#888">${s.p&&s.p.front_row_qualified?'FR qualified':''}</div></div>`).join('')}
+      ${starters.map(s=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:4px 0;border-bottom:0.5px solid #eee;font-size:12px;align-items:center"><span style="font-weight:700">${s.num}</span><div><div style="font-weight:600">${s.p?s.p.first+' '+s.p.last+(s.p.front_row_qualified?'*':''):'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${s.pos}</div></div><div style="font-size:10px;color:#888">${s.p&&s.p.front_row_qualified?'FR qualified':''}</div></div>`).join('')}
     </div>
     <div>
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:6px">Replacements</div>
-      ${bench.map(b=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:3px 0;border-bottom:0.5px dotted #eee;font-size:12px;align-items:center"><span style="font-weight:700">${b.num}</span><div><div>${b.p?b.p.first+' '+b.p.last:'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${b.pos}</div></div><div style="font-size:10px;color:#888">${b.p&&b.p.front_row_qualified?'FR qualified':''}</div></div>`).join('')}
+      ${bench.map(b=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:3px 0;border-bottom:0.5px dotted #eee;font-size:12px;align-items:center"><span style="font-weight:700">${b.num}</span><div><div>${b.p?b.p.first+' '+b.p.last+(b.p.front_row_qualified?'*':''):'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${b.pos}</div></div><div style="font-size:10px;color:#888">${b.p&&b.p.front_row_qualified?'FR qualified':''}</div></div>`).join('')}
     </div>
+    <div style="margin-top:8px;font-size:10px;color:#666;">* Front row qualified</div>
     <div style="margin-top:12px;border-top:1px solid #ddd;padding-top:8px;font-size:10px;color:#666;display:flex;justify-content:space-between">
       <span>Coach: ________________</span><span>${match?match.date:today}</span><span>${match?match.comp||'-':'&mdash;'}</span>
     </div>
