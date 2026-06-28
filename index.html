@@ -423,7 +423,7 @@ try {
 } catch(e) {
   console.error('Supabase failed to initialise:', e);
   document.getElementById('authStatus').innerHTML =
-    '<span style="color:var(--danger-text)">⚠ Could not connect to database</span>';
+    '<span style="color:var(--danger-text)">(!!) Could not connect to database</span>';
 }
 
 // ── LOCAL CACHE ────────────────────────────────────────────
@@ -556,7 +556,7 @@ async function loadAttendance(){
 // ── HELPERS ────────────────────────────────────────────────
 const gp  = id => db.players.find(p=>p.id==id);
 const pn  = id => { const p=gp(id); return p?p.first+' '+p.last:'?'; };
-const age = d  => { if(!d)return'—'; return Math.floor((Date.now()-new Date(d))/31536000000); };
+const age = d  => { if(!d)return'&mdash;'; return Math.floor((Date.now()-new Date(d))/31536000000); };
 const tryCount = pid => db.matches.reduce((s,m)=>s+(m.tryScorers||[]).filter(i=>i==pid).length, 0);
 const ycCount  = pid => db.matches.reduce((s,m)=>s+(m.yellowCards||[]).filter(i=>i==pid).length, 0);
 const rcCount  = pid => db.matches.reduce((s,m)=>s+(m.redCards||[]).filter(i=>i==pid).length, 0);
@@ -606,8 +606,8 @@ function rDash(){
   const rec=[...played].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
   document.getElementById('dMatches').innerHTML=rec.length?rec.map(m=>`
     <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)">
-      <div><div style="font-size:13px;font-weight:500">${m.opp}</div><div style="font-size:11px;color:var(--text-muted)">${m.date} · ${m.venue}</div></div>
-      <div style="display:flex;align-items:center;gap:7px">${resBdg(m)}<span style="font-size:13px;font-weight:500">${m.scoreUs}–${m.scoreThem}</span></div>
+      <div><div style="font-size:13px;font-weight:500">${m.opp}</div><div style="font-size:11px;color:var(--text-muted)">${m.date} &middot; ${m.venue}</div></div>
+      <div style="display:flex;align-items:center;gap:7px">${resBdg(m)}<span style="font-size:13px;font-weight:500">${m.scoreUs}&ndash;${m.scoreThem}</span></div>
     </div>`).join(''):'<div class="emp">No matches yet.</div>';
   const sc=[...db.players].map(p=>({p,t:tryCount(p.id)})).filter(x=>x.t>0).sort((a,b)=>b.t-a.t).slice(0,5);
   document.getElementById('dScorers').innerHTML=sc.length?sc.map((x,i)=>`
@@ -634,10 +634,10 @@ function rPlayers(){
   const f=db.players.filter(p=>(!s||(p.first+' '+p.last).toLowerCase().includes(s))&&(!pf||p.pos===pf));
   document.getElementById('pTbl').innerHTML=f.length?f.map(p=>`<tr>
     <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div style="font-weight:500;cursor:pointer;color:var(--accent-text)" onclick="openProfile(${p.id})">${p.first} ${p.last}</div></div></td>
-    <td><span class="pl">${p.pos||'—'}</span></td><td>${age(p.dob)}</td><td>${p.appearances}</td><td>${tryCount(p.id)}</td>
-    <td>${p.front_row_qualified?'<span class="bdg dg">Yes</span>':'—'}</td>
-    <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'—'}</td>
-    <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'—'}</td>
+    <td><span class="pl">${p.pos||'-'}</span></td><td>${age(p.dob)}</td><td>${p.appearances}</td><td>${tryCount(p.id)}</td>
+    <td>${p.front_row_qualified?'<span class="bdg dg">Yes</span>':'&mdash;'}</td>
+    <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'&mdash;'}</td>
+    <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'&mdash;'}</td>
     <td>${stBdg(p.status)}</td>
     <td style="white-space:nowrap"><button class="btn bs" onclick="openProfile(${p.id})" title="View profile"><i class="ti ti-user"></i></button> ${currentUser?`<button class="btn bs" onclick="editP(${p.id})"><i class="ti ti-edit"></i></button> <button class="btn bs bd" onclick="delP(${p.id})"><i class="ti ti-trash"></i></button>`:''}</td>
   </tr>`).join(''):'<tr><td colspan="10"><div class="emp">No players found.</div></td></tr>';
@@ -699,17 +699,17 @@ function rMatches(){
             ${(m.yellowCards||[]).length?`<span class="cb yc">${(m.yellowCards||[]).length}</span>`:''}
             ${(m.redCards||[]).length?`<span class="cb rc">${(m.redCards||[]).length}</span>`:''}
           </div>
-          <div style="font-size:11px;color:var(--text-muted)">${m.date} · ${m.comp||''}${m.status==='Played'?' · '+m.scoreUs+'–'+m.scoreThem:''}</div>
-          ${(m.tryScorers||[]).length?`<div style="font-size:11px;margin-top:3px;color:var(--text-secondary)">Tries: ${[...new Set(m.tryScorers)].map(id=>{const c=(m.tryScorers||[]).filter(x=>x==id).length;return pn(id)+(c>1?' ×'+c:'')}).join(', ')}</div>`:''}
-          ${m.motm?`<div style="font-size:11px;margin-top:2px;color:var(--text-secondary)">⭐ MoM: ${pn(m.motm)}</div>`:''}
-          ${m.bishy_way?`<div style="font-size:11px;margin-top:2px;color:var(--text-secondary)">🟢 Bishy Way: ${pn(m.bishy_way)}</div>`:''}
+          <div style="font-size:11px;color:var(--text-muted)">${m.date} &middot; ${m.comp||''}${m.status==='Played'?' &middot; '+m.scoreUs+'&ndash;'+m.scoreThem:''}</div>
+          ${(m.tryScorers||[]).length?`<div style="font-size:11px;margin-top:3px;color:var(--text-secondary)">Tries: ${[...new Set(m.tryScorers)].map(id=>{const c=(m.tryScorers||[]).filter(x=>x==id).length;return pn(id)+(c>1?' x'+c:'')}).join(', ')}</div>`:''}
+          ${m.motm?`<div style="font-size:11px;margin-top:2px;color:var(--text-secondary)">(*) MoM: ${pn(m.motm)}</div>`:''}
+          ${m.bishy_way?`<div style="font-size:11px;margin-top:2px;color:var(--text-secondary)">(B) Bishy Way: ${pn(m.bishy_way)}</div>`:''}
         </div>
         <div style="display:flex;gap:5px">
           ${currentUser?`<button class="btn bs" onclick="editM(${m.id})"><i class="ti ti-edit"></i></button><button class="btn bs bd" onclick="delM(${m.id})"><i class="ti ti-trash"></i></button>`:''}
         </div>
       </div>
       ${m.notes?`<div style="margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px"><div style="font-size:10px;font-weight:500;color:var(--text-muted);margin-bottom:4px">Match notes</div><div class="na">${m.notes}</div></div>`:''}
-      ${(m.events||[]).length?`<div style="margin-top:7px;border-top:0.5px solid var(--border);padding-top:7px"><div style="font-size:10px;font-weight:500;color:var(--text-muted);margin-bottom:3px">Tracked events (${m.events.length})</div><div style="font-size:11px;color:var(--text-secondary)">${m.events.slice(0,5).map(e=>e.min+"' "+e.desc).join(' · ')}${m.events.length>5?' …':''}</div></div>`:''}
+      ${(m.events||[]).length?`<div style="margin-top:7px;border-top:0.5px solid var(--border);padding-top:7px"><div style="font-size:10px;font-weight:500;color:var(--text-muted);margin-bottom:3px">Tracked events (${m.events.length})</div><div style="font-size:11px;color:var(--text-secondary)">${m.events.slice(0,5).map(e=>e.min+"' "+e.desc).join(' &middot; ')}${m.events.length>5?' ...':''}</div></div>`:''}
     </div>`).join('')||'<div class="emp">No matches yet.</div>';
 }
 
@@ -727,7 +727,7 @@ function openMM(id){
   document.getElementById('mv2').value=m?m.venue:'Home';
   document.getElementById('mst').value=m?m.status:'Upcoming';
   const mm=document.getElementById('mm'),mbw=document.getElementById('mbw'),mts=document.getElementById('mts'),myc=document.getElementById('myc'),mrc=document.getElementById('mrc');
-  mm.innerHTML='<option value="">—</option>'; mbw.innerHTML='<option value="">—</option>';
+  mm.innerHTML='<option value="">&mdash;</option>'; mbw.innerHTML='<option value="">&mdash;</option>';
   mts.innerHTML=''; myc.innerHTML=''; mrc.innerHTML='';
   // Squad players for this match (if a saved squad exists), otherwise all active players
   const savedSquad=id?db.squads&&db.squads.find(s=>s.match_id==id):null;
@@ -787,8 +787,8 @@ function rTraining(){
     const pres=Object.values(att).filter(v=>v==='present').length;
     return`<div class="card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-        <div><div style="font-size:13px;font-weight:500;margin-bottom:3px">${t.date} — <span class="pl">${t.focus}</span></div>
-        <div style="font-size:11px;color:var(--text-muted)">${t.duration} mins · ${pres}/${db.players.length} attended</div></div>
+        <div><div style="font-size:13px;font-weight:500;margin-bottom:3px">${t.date} &mdash; <span class="pl">${t.focus}</span></div>
+        <div style="font-size:11px;color:var(--text-muted)">${t.duration} mins &middot; ${pres}/${db.players.length} attended</div></div>
         <div style="display:flex;gap:5px">
           ${currentUser?`<button class="btn bs" onclick="editTr(${t.id})"><i class="ti ti-edit"></i></button><button class="btn bs bd" onclick="delTr(${t.id})"><i class="ti ti-trash"></i></button>`:''}
         </div>
@@ -830,9 +830,9 @@ async function delTr(id){
 // ── ATTENDANCE ─────────────────────────────────────────────
 function rAttSel(){
   const sel=document.getElementById('attSel'); const cur=sel.value;
-  sel.innerHTML='<option value="">Select session or match…</option>';
-  [...db.matches].sort((a,b)=>b.date.localeCompare(a.date)).forEach(m=>sel.innerHTML+=`<option value="match_${m.id}">${m.date} — Match vs ${m.opp}</option>`);
-  [...db.training].sort((a,b)=>b.date.localeCompare(a.date)).forEach(t=>sel.innerHTML+=`<option value="training_${t.id}">${t.date} — Training: ${t.focus}</option>`);
+  sel.innerHTML='<option value="">Select session or match...</option>';
+  [...db.matches].sort((a,b)=>b.date.localeCompare(a.date)).forEach(m=>sel.innerHTML+=`<option value="match_${m.id}">${m.date} &mdash; Match vs ${m.opp}</option>`);
+  [...db.training].sort((a,b)=>b.date.localeCompare(a.date)).forEach(t=>sel.innerHTML+=`<option value="training_${t.id}">${t.date} &mdash; Training: ${t.focus}</option>`);
   if(cur)sel.value=cur;
 }
 
@@ -862,7 +862,7 @@ async function setAtt(key,pid,val){
 // ── SQUAD SELECTOR ─────────────────────────────────────────
 function rSqSel(){
   const sel=document.getElementById('sqM');
-  sel.innerHTML='<option value="">Select match…</option>';
+  sel.innerHTML='<option value="">Select match...</option>';
   db.matches.forEach(m=>sel.innerHTML+=`<option value="${m.id}">${m.date} vs ${m.opp}</option>`);
 }
 
@@ -901,7 +901,7 @@ function rPool(){
     const inS=sqd.includes(p.id); const ua=p.status!=='Active';
     return`<div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-bottom:0.5px solid var(--border);cursor:pointer;background:${inS?'var(--success-bg)':'transparent'};opacity:${ua&&!inS?.5:1}" onclick="assignP(${p.id})">
       <div class="av" style="width:24px;height:24px;font-size:9px">${p.first[0]}${p.last[0]}</div>
-      <div style="flex:1"><div style="font-size:12px;font-weight:500">${p.first} ${p.last}</div><div style="font-size:10px;color:var(--text-muted)">${p.pos||'—'}</div></div>
+      <div style="flex:1"><div style="font-size:12px;font-weight:500">${p.first} ${p.last}</div><div style="font-size:10px;color:var(--text-muted)">${p.pos||'-'}</div></div>
       ${inS?`<span style="font-size:10px;color:var(--success-text);font-weight:500">In squad</span>`:''}
       ${p.front_row_qualified?`<span class="bdg dg" style="font-size:10px">FR</span>`:''}
     </div>`;
@@ -939,10 +939,10 @@ async function saveSquad(){
         player.appearances=newApps; // update local cache immediately
       }
     }
-    if(squadPlayerIds.length) toast(`Squad saved — appearances updated for ${squadPlayerIds.length} players.`);
+    if(squadPlayerIds.length) toast(`Squad saved &mdash; appearances updated for ${squadPlayerIds.length} players.`);
     else toast('Squad saved!');
   } else {
-    toast('Squad saved! (appearances not re-counted — squad already existed for this match)');
+    toast('Squad saved! (appearances not re-counted &mdash; squad already existed for this match)');
   }
 
   await loadSquads();
@@ -959,8 +959,8 @@ function rTS(){
   document.getElementById('tsPreview').innerHTML=`<div style="background:#fff;color:#111;border:1px solid #ccc;border-radius:8px;padding:1.25rem;font-family:Arial,sans-serif" id="tsPrint">
     <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px">
       <div style="font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:1px">${club}</div>
-      <div style="font-size:13px;margin-top:3px;color:#333">${match?`vs ${match.opp} · ${match.venue}`:''}</div>
-      <div style="font-size:11px;color:#555">${match?match.date+' · '+(match.comp||''):today}</div>
+      <div style="font-size:13px;margin-top:3px;color:#333">${match?`vs ${match.opp} &middot; ${match.venue}`:''}</div>
+      <div style="font-size:11px;color:#555">${match?match.date+' &middot; '+(match.comp||''):today}</div>
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:6px">Starting XV</div>
@@ -971,7 +971,7 @@ function rTS(){
       ${bench.map(b=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:3px 0;border-bottom:0.5px dotted #eee;font-size:12px;align-items:center"><span style="font-weight:700">${b.num}</span><div><div>${b.p?b.p.first+' '+b.p.last:'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${b.pos}</div></div><div style="font-size:10px;color:#888">${b.p&&b.p.front_row_qualified?'FR qualified':''}</div></div>`).join('')}
     </div>
     <div style="margin-top:12px;border-top:1px solid #ddd;padding-top:8px;font-size:10px;color:#666;display:flex;justify-content:space-between">
-      <span>Coach: ________________</span><span>${match?match.date:today}</span><span>${match?match.comp||'—':'—'}</span>
+      <span>Coach: ________________</span><span>${match?match.date:today}</span><span>${match?match.comp||'-':'&mdash;'}</span>
     </div>
   </div>`;
 }
@@ -984,16 +984,16 @@ function printTS(){
 }
 
 function copyTS(){
-  const starters=POSITIONS.map(p=>{const pl=squad[p.n]?gp(squad[p.n]):null;return`${p.n}. ${pl?pl.first+' '+pl.last:'TBC'} — ${p.l}`});
-  const bench=BENCH_POS.map((pos,i)=>{const pl=squad['b'+(i+1)]?gp(squad['b'+(i+1)]):null;return`${i+16}. ${pl?pl.first+' '+pl.last:'TBC'} — ${pos}`});
+  const starters=POSITIONS.map(p=>{const pl=squad[p.n]?gp(squad[p.n]):null;return`${p.n}. ${pl?pl.first+' '+pl.last:'TBC'} &mdash; ${p.l}`});
+  const bench=BENCH_POS.map((pos,i)=>{const pl=squad['b'+(i+1)]?gp(squad['b'+(i+1)]):null;return`${i+16}. ${pl?pl.first+' '+pl.last:'TBC'} &mdash; ${pos}`});
   const club=document.getElementById('clubName').value||'My RFC';
-  navigator.clipboard.writeText([club.toUpperCase()+' — TEAM SHEET','','STARTING XV',...starters,'','REPLACEMENTS',...bench].join('\n')).then(()=>toast('Copied to clipboard!'));
+  navigator.clipboard.writeText([club.toUpperCase()+' &mdash; TEAM SHEET','','STARTING XV',...starters,'','REPLACEMENTS',...bench].join('\n')).then(()=>toast('Copied to clipboard!'));
 }
 
 // ── MATCH DAY ──────────────────────────────────────────────
 function rMdSel(){
   const sel=document.getElementById('mdSel'); const cur=sel.value;
-  sel.innerHTML='<option value="">Select match…</option>';
+  sel.innerHTML='<option value="">Select match...</option>';
   db.matches.forEach(m=>sel.innerHTML+=`<option value="${m.id}">${m.date} vs ${m.opp} (${m.venue})</option>`);
   if(cur)sel.value=cur;
   if(!cur&&mds.matchId)sel.value=mds.matchId;
@@ -1012,14 +1012,14 @@ function rMD(){
   <div class="sb">
     <div class="st">
       <div class="stn">My Team</div>
-      <div class="sns"><span class="sn" id="mdUs">${mds.scoreUs}</span><span class="sd">–</span><span class="sn" id="mdTh">${mds.scoreThem}</span></div>
+      <div class="sns"><span class="sn" id="mdUs">${mds.scoreUs}</span><span class="sd">&ndash;</span><span class="sn" id="mdTh">${mds.scoreThem}</span></div>
       <div class="stn" style="text-align:right">${m.opp}</div>
     </div>
-    <div class="sh" id="mdHalf">Half ${mds.half}${mds.running?' · live':''}</div>
+    <div class="sh" id="mdHalf">Half ${mds.half}${mds.running?' &middot; live':''}</div>
     <div class="cr">
       <button class="cb2" id="ckBtn" onclick="toggleClock()">${mds.running?'<i class="ti ti-player-pause"></i> Pause':'<i class="ti ti-player-play"></i> Start'}</button>
       <span class="ck" id="ckDisp">${fmtClock(mds.secs)}</span>
-      <button class="cb2" onclick="adjMin(-1)">–1 min</button>
+      <button class="cb2" onclick="adjMin(-1)">&ndash;1 min</button>
       <button class="cb2" onclick="adjMin(1)">+1 min</button>
       <button class="cb2" onclick="setHalf()">${mds.half===1?'Half time':'Full time'}</button>
     </div>
@@ -1059,7 +1059,7 @@ function rMD(){
         </div>
         <div id="mdNotesList">${buildNotes()}</div>
         <div id="mdNoteInput" style="display:none;margin-top:7px">
-          <textarea id="mdNoteText" placeholder="Observation…" style="height:50px;font-size:12px;margin-bottom:5px"></textarea>
+          <textarea id="mdNoteText" placeholder="Observation..." style="height:50px;font-size:12px;margin-bottom:5px"></textarea>
           <div style="display:flex;gap:5px;justify-content:flex-end">
             <button class="btn bs" onclick="cancelNote()">Cancel</button>
             <button class="btn bs ba" onclick="saveNote()">Save</button>
@@ -1074,18 +1074,18 @@ const TL_ICONS={try_us:'<i class="ti ti-circle-check" style="color:var(--success
 
 function buildTL(){
   if(!mds.events.length)return'<div class="emp" style="padding:1rem">No events yet.</div>';
-  return mds.events.slice().reverse().map(e=>`<div class="ti"><span class="tm">${e.min}'</span><span class="tic">${TL_ICONS[e.type]||'·'}</span><div><div class="tdm">${e.desc}</div>${e.note?`<div class="tds">${e.note}</div>`:''}</div></div>`).join('');
+  return mds.events.slice().reverse().map(e=>`<div class="ti"><span class="tm">${e.min}'</span><span class="tic">${TL_ICONS[e.type]||'&middot;'}</span><div><div class="tdm">${e.desc}</div>${e.note?`<div class="tds">${e.note}</div>`:''}</div></div>`).join('');
 }
 
 function buildStats(){
   const ev=mds.events;
   const rows=[['Tries',ev.filter(e=>e.type==='try_us').length,ev.filter(e=>e.type==='try_them').length],['Penalty kicks',ev.filter(e=>e.type==='pen_us').length,ev.filter(e=>e.type==='pen_them').length],['Scrums won',ev.filter(e=>e.type==='scrum'&&e.winner==='us').length,ev.filter(e=>e.type==='scrum'&&e.winner==='them').length],['Lineouts won',ev.filter(e=>e.type==='lineout'&&e.winner==='us').length,ev.filter(e=>e.type==='lineout'&&e.winner==='them').length]];
-  return rows.map(r=>{const t=r[1]+r[2]||1;return`<div class="sbr"><span style="min-width:18px;text-align:right;color:var(--success-text);font-weight:500">${r[1]}</span><div style="flex:1;display:flex;height:7px;border-radius:99px;overflow:hidden;background:var(--surface-1)"><div style="height:100%;width:${Math.round(r[1]/t*100)}%;background:var(--success);border-radius:99px 0 0 99px"></div><div style="height:100%;width:${Math.round(r[2]/t*100)}%;background:var(--danger);border-radius:0 99px 99px 0"></div></div><span style="min-width:18px;color:var(--danger-text);font-weight:500">${r[2]}</span><span style="min-width:82px;font-size:11px;color:var(--text-muted)">${r[0]}</span></div>`}).join('')+`<div style="margin-top:7px;font-size:11px;color:var(--text-muted)">Pens conceded: <b>${ev.filter(e=>e.type==='pen_conceded').length}</b> · YC: <b>${ev.filter(e=>e.type==='yellow_card').length}</b> · RC: <b>${ev.filter(e=>e.type==='red_card').length}</b> · Subs: <b>${ev.filter(e=>e.type==='substitution').length}</b></div>`;
+  return rows.map(r=>{const t=r[1]+r[2]||1;return`<div class="sbr"><span style="min-width:18px;text-align:right;color:var(--success-text);font-weight:500">${r[1]}</span><div style="flex:1;display:flex;height:7px;border-radius:99px;overflow:hidden;background:var(--surface-1)"><div style="height:100%;width:${Math.round(r[1]/t*100)}%;background:var(--success);border-radius:99px 0 0 99px"></div><div style="height:100%;width:${Math.round(r[2]/t*100)}%;background:var(--danger);border-radius:0 99px 99px 0"></div></div><span style="min-width:18px;color:var(--danger-text);font-weight:500">${r[2]}</span><span style="min-width:82px;font-size:11px;color:var(--text-muted)">${r[0]}</span></div>`}).join('')+`<div style="margin-top:7px;font-size:11px;color:var(--text-muted)">Pens conceded: <b>${ev.filter(e=>e.type==='pen_conceded').length}</b> &middot; YC: <b>${ev.filter(e=>e.type==='yellow_card').length}</b> &middot; RC: <b>${ev.filter(e=>e.type==='red_card').length}</b> &middot; Subs: <b>${ev.filter(e=>e.type==='substitution').length}</b></div>`;
 }
 
 function buildNotes(){
   if(!mds.notes.length)return'<div style="font-size:12px;color:var(--text-muted)">No notes yet.</div>';
-  return mds.notes.map(n=>`<div class="note-item"><div class="note-ts">${n.min}' · ${n.time}</div><div style="font-size:12px;color:var(--text-secondary)">${n.text}</div></div>`).join('');
+  return mds.notes.map(n=>`<div class="note-item"><div class="note-ts">${n.min}' &middot; ${n.time}</div><div style="font-size:12px;color:var(--text-secondary)">${n.text}</div></div>`).join('');
 }
 
 function addNote(){document.getElementById('mdNoteInput').style.display='block';document.getElementById('mdNoteText').focus();}
@@ -1103,7 +1103,7 @@ function toggleClock(){
   if(mds.running){stopClock();}
   else{mds.running=true;mds.timer=setInterval(()=>{mds.secs++;const el=document.getElementById('ckDisp');if(el)el.textContent=fmtClock(mds.secs);},1000);}
   const btn=document.getElementById('ckBtn');if(btn)btn.innerHTML=mds.running?'<i class="ti ti-player-pause"></i> Pause':'<i class="ti ti-player-play"></i> Start';
-  const sh=document.getElementById('mdHalf');if(sh)sh.textContent=`Half ${mds.half}${mds.running?' · live':''}`;
+  const sh=document.getElementById('mdHalf');if(sh)sh.textContent=`Half ${mds.half}${mds.running?' &middot; live':''}`;
 }
 function stopClock(){if(mds.timer)clearInterval(mds.timer);mds.running=false;mds.timer=null;}
 function adjMin(d){mds.secs=Math.max(0,mds.secs+d*60);const el=document.getElementById('ckDisp');if(el)el.textContent=fmtClock(mds.secs);}
@@ -1119,7 +1119,7 @@ async function setHalf(){
       await sb.from('matches').update({score_us:mds.scoreUs,score_them:mds.scoreThem,status:'Played',events:mds.events}).eq('id',mds.matchId);
       toast('Full time! Score saved.'); await loadMatches();
     } else {
-      alert(`Full time! ${mds.scoreUs} – ${mds.scoreThem}`);
+      alert(`Full time! ${mds.scoreUs} &ndash; ${mds.scoreThem}`);
     }
   }
   rMD();
@@ -1128,7 +1128,7 @@ function resetMD(){stopClock();mds={matchId:mds.matchId,scoreUs:0,scoreThem:0,ha
 
 function openEv(type){
   mds.currentEvType=type;
-  const labels={try_us:'Try — our team',try_them:'Try — opposition',conv_us:'Conversion — our team',conv_them:'Conversion — opposition',pen_us:'Penalty kick — our team',pen_them:'Penalty kick — opposition',drop_us:'Drop goal — our team',drop_them:'Drop goal — opposition',yellow_card:'Yellow card',red_card:'Red card',pen_conceded:'Penalty conceded',scrum:'Scrum result',lineout:'Lineout result',substitution:'Substitution'};
+  const labels={try_us:'Try &mdash; our team',try_them:'Try &mdash; opposition',conv_us:'Conversion &mdash; our team',conv_them:'Conversion &mdash; opposition',pen_us:'Penalty kick &mdash; our team',pen_them:'Penalty kick &mdash; opposition',drop_us:'Drop goal &mdash; our team',drop_them:'Drop goal &mdash; opposition',yellow_card:'Yellow card',red_card:'Red card',pen_conceded:'Penalty conceded',scrum:'Scrum result',lineout:'Lineout result',substitution:'Substitution'};
   document.getElementById('evT').textContent=labels[type]||type;
   document.getElementById('evMin').value=curMin();
   document.getElementById('evNote').value='';
@@ -1154,7 +1154,7 @@ function openEv(type){
   const activePl=db.players.filter(p=>p.status==='Active');
   ['evScorerSel','evCardSel','evPenPlayer','evSubOff','evSubOn'].forEach(sid=>{
     const sel=document.getElementById(sid);
-    sel.innerHTML='<option value="">Select player…</option>';
+    sel.innerHTML='<option value="">Select player...</option>';
     activePl.forEach(p=>sel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
   });
 
@@ -1178,19 +1178,19 @@ async function saveEv(){
   if(['try_us','conv_us','pen_us','drop_us'].includes(type)){
     pid=document.getElementById('evScorerSel').value?parseInt(document.getElementById('evScorerSel').value):null;
     const lbl={try_us:'Try',conv_us:'Conversion',pen_us:'Penalty kick',drop_us:'Drop goal'}[type];
-    desc=lbl+(pid?' — '+pn(pid):'');
+    desc=lbl+(pid?' &mdash; '+pn(pid):'');
     mds.scoreUs+=scoreMap[type]||0;
     const el=document.getElementById('mdUs'); if(el)el.textContent=mds.scoreUs;
     if(type==='try_us'&&pid&&currentUser) await sb.from('try_scorers').insert({match_id:mds.matchId,player_id:pid});
   } else if(['try_them','conv_them','pen_them','drop_them'].includes(type)){
     pid=document.getElementById('evScorerSel').value?parseInt(document.getElementById('evScorerSel').value):null;
     const lbl={try_them:'Try (opp)',conv_them:'Conversion (opp)',pen_them:'Penalty kick (opp)',drop_them:'Drop goal (opp)'}[type];
-    desc=lbl+(pid&&type==='try_them'?' — '+pn(pid):'');
+    desc=lbl+(pid&&type==='try_them'?' &mdash; '+pn(pid):'');
     mds.scoreThem+=scoreMap[type]||0;
     const el=document.getElementById('mdTh'); if(el)el.textContent=mds.scoreThem;
   } else if(type==='yellow_card'||type==='red_card'){
     pid=document.getElementById('evCardSel').value?parseInt(document.getElementById('evCardSel').value):null;
-    desc=(type==='yellow_card'?'Yellow card':'Red card')+(pid?' — '+pn(pid):'');
+    desc=(type==='yellow_card'?'Yellow card':'Red card')+(pid?' &mdash; '+pn(pid):'');
     if(pid&&currentUser){
       const tbl=type==='yellow_card'?'yellow_cards':'red_cards';
       await sb.from(tbl).insert({match_id:parseInt(mds.matchId),player_id:pid});
@@ -1199,18 +1199,18 @@ async function saveEv(){
     const team=document.getElementById('evPenTeam').value;
     const ppid=team==='us'&&document.getElementById('evPenPlayer').value?parseInt(document.getElementById('evPenPlayer').value):null;
     const ptype=team?document.getElementById('evPenType').value:'';
-    desc='Penalty conceded'+(team==='us'?' (our team)':team==='them'?' (opposition)':'')+(ppid?' — '+pn(ppid):'')+(ptype?' · '+ptype:'');
+    desc='Penalty conceded'+(team==='us'?' (our team)':team==='them'?' (opposition)':'')+(ppid?' &mdash; '+pn(ppid):'')+(ptype?' &middot; '+ptype:'');
   } else if(type==='scrum'||type==='lineout'){
     const putin=document.getElementById('evSetPutin').value;
     winner=document.getElementById('evSetWinner').value;
     const lbl=type==='scrum'?'Scrum':'Lineout';
     const putinLbl=type==='scrum'?'put-in':'throw';
-    desc=`${lbl} — ${putinLbl}: ${putin==='us'?'our team':'opp'} · won: ${winner==='us'?'our team':'opp'}`;
+    desc=`${lbl} &mdash; ${putinLbl}: ${putin==='us'?'our team':'opp'} &middot; won: ${winner==='us'?'our team':'opp'}`;
   } else if(type==='substitution'){
     const offId=document.getElementById('evSubOff').value?parseInt(document.getElementById('evSubOff').value):null;
     const onId=document.getElementById('evSubOn').value?parseInt(document.getElementById('evSubOn').value):null;
     const st=document.getElementById('evSubType').value;
-    desc='Sub — '+(offId?pn(offId):'?')+' off / '+(onId?pn(onId):'?')+' on'+(st!=='Planned substitution'?' ('+st+')':'');
+    desc='Sub &mdash; '+(offId?pn(offId):'?')+' off / '+(onId?pn(onId):'?')+' on'+(st!=='Planned substitution'?' ('+st+')':'');
   }
 
   mds.events.push({type,min,desc,note,winner,pid});
@@ -1225,10 +1225,10 @@ function rIndSt(){
   document.getElementById('st-ind').innerHTML=`<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Player</th><th>Pos</th><th>Apps</th><th>Tries</th><th>Pts</th><th>Att%</th><th>YC</th><th>RC</th><th>Status</th></tr></thead><tbody>
     ${[...db.players].sort((a,b)=>tryCount(b.id)-tryCount(a.id)).map(p=>`<tr>
       <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div style="font-size:12px;font-weight:500">${p.first} ${p.last}</div></div></td>
-      <td><span class="pl">${p.pos||'—'}</span></td><td>${p.appearances}</td><td>${tryCount(p.id)}</td><td>${tryCount(p.id)*5}</td>
+      <td><span class="pl">${p.pos||'-'}</span></td><td>${p.appearances}</td><td>${tryCount(p.id)}</td><td>${tryCount(p.id)*5}</td>
       <td><span class="bdg ${attPct(p.id)>=75?'dg':attPct(p.id)>=50?'da':'dr'}">${attPct(p.id)}%</span></td>
-      <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'—'}</td>
-      <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'—'}</td>
+      <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'&mdash;'}</td>
+      <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'&mdash;'}</td>
       <td>${stBdg(p.status)}</td>
     </tr>`).join('')}
   </tbody></table></div>`;
@@ -1249,7 +1249,7 @@ function rTeamSt(){
   <div class="card">${pl.map(m=>`<div style="display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:0.5px solid var(--border)">
     <span style="font-size:11px;color:var(--text-muted);min-width:82px">${m.date}</span>
     <span style="flex:1;font-size:12px;font-weight:500">vs ${m.opp}</span>
-    <span style="font-size:12px">${m.scoreUs}–${m.scoreThem}</span>${resBdg(m)}
+    <span style="font-size:12px">${m.scoreUs}&ndash;${m.scoreThem}</span>${resBdg(m)}
   </div>`).join('')||'<div class="emp">No results.</div>'}</div>`;
 }
 
@@ -1270,7 +1270,7 @@ function rDiscSt(){
     <div class="sc"><div class="sl">Total red cards</div><div class="sv" style="color:var(--danger-text)">${trc}</div></div>
   </div>
   ${players.length?`<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Player</th><th>Position</th><th>Yellow</th><th>Red</th></tr></thead><tbody>
-    ${players.map(x=>`<tr><td style="font-weight:500">${x.p.first} ${x.p.last}</td><td><span class="pl">${x.p.pos||'—'}</span></td><td>${x.yc?`<span class="cb yc">${x.yc}</span>`:'—'}</td><td>${x.rc?`<span class="cb rc">${x.rc}</span>`:'—'}</td></tr>`).join('')}
+    ${players.map(x=>`<tr><td style="font-weight:500">${x.p.first} ${x.p.last}</td><td><span class="pl">${x.p.pos||'-'}</span></td><td>${x.yc?`<span class="cb yc">${x.yc}</span>`:'&mdash;'}</td><td>${x.rc?`<span class="cb rc">${x.rc}</span>`:'&mdash;'}</td></tr>`).join('')}
   </tbody></table></div>`:'<div class="emp">No cards recorded.</div>'}`;
 }
 
@@ -1294,7 +1294,7 @@ function rProfile(pid){
   const p=gp(pid);
   if(!p){document.getElementById('profileContent').innerHTML='<div class="emp">Player not found.</div>';return;}
 
-  const age_val=p.dob?age(p.dob)+'y':'—';
+  const age_val=p.dob?age(p.dob)+'y':'&mdash;';
   const tc=tryCount(pid);
   const yc=ycCount(pid);
   const rc=rcCount(pid);
@@ -1329,7 +1329,7 @@ function rProfile(pid){
       }
     });
   });
-  const mostCommonNum=Object.keys(posNums).sort((a,b)=>posNums[b]-posNums[a])[0]||'—';
+  const mostCommonNum=Object.keys(posNums).sort((a,b)=>posNums[b]-posNums[a])[0]||'-';
 
   document.getElementById('profileContent').innerHTML=`
     <div class="profile-hero">
@@ -1345,8 +1345,8 @@ function rProfile(pid){
         <div class="profile-meta">
           ${p.dob?'<span>Age: '+age_val+'</span>':''}
           ${p.dob?'<span>DOB: '+p.dob+'</span>':''}
-          ${mostCommonNum!=='—'?'<span>Most common shirt #'+mostCommonNum+'</span>':''}
-          ${p.phone?'<span>📞 '+p.phone+'</span>':''}
+          ${mostCommonNum!=='-'?'<span>Most common shirt #'+mostCommonNum+'</span>':''}
+          ${p.phone?'<span> '+p.phone+'</span>':''}
         </div>
       </div>
       ${currentUser?'<button class="btn bs" onclick="editP('+pid+')"><i class="ti ti-edit"></i> Edit</button>':''}
@@ -1359,8 +1359,8 @@ function rProfile(pid){
       <div class="profile-stat"><div class="profile-stat-val">${att}%</div><div class="profile-stat-lbl">Attendance</div></div>
       <div class="profile-stat"><div class="profile-stat-val" style="color:var(--warning-text)">${yc}</div><div class="profile-stat-lbl">Yellow cards</div></div>
       <div class="profile-stat"><div class="profile-stat-val" style="color:var(--danger-text)">${rc}</div><div class="profile-stat-lbl">Red cards</div></div>
-      <div class="profile-stat"><div class="profile-stat-val">⭐${momMatches.length}</div><div class="profile-stat-lbl">Man of Match</div></div>
-      <div class="profile-stat"><div class="profile-stat-val">🟢${bishyMatches.length}</div><div class="profile-stat-lbl">Bishy Way</div></div>
+      <div class="profile-stat"><div class="profile-stat-val">(*)${momMatches.length}</div><div class="profile-stat-lbl">Man of Match</div></div>
+      <div class="profile-stat"><div class="profile-stat-val">(B)${bishyMatches.length}</div><div class="profile-stat-lbl">Bishy Way</div></div>
     </div>
 
     <div class="g2" style="gap:12px;align-items:start">
@@ -1381,10 +1381,10 @@ function rProfile(pid){
               (scored?'<span class="bdg dg" style="font-size:10px">'+scored+' tr'+(scored>1?'ies':'y')+'</span>':'')+
               (gotYC?'<span class="cb yc">YC</span>':'')+
               (gotRC?'<span class="cb rc">RC</span>':'')+
-              (isMom?'<span style="font-size:10px">⭐ MoM</span>':'')+
-              (isBishy?'<span style="font-size:10px">🟢 BW</span>':'')+
+              (isMom?'<span style="font-size:10px">(*) MoM</span>':'')+
+              (isBishy?'<span style="font-size:10px">(B) BW</span>':'')+
               '</div></div>'+
-              '<span style="font-size:12px">'+m.scoreUs+'–'+m.scoreThem+'</span>'+
+              '<span style="font-size:12px">'+m.scoreUs+'&ndash;'+m.scoreThem+'</span>'+
               resBdg(m)+
             '</div>';
           }).join('')
@@ -1414,7 +1414,7 @@ function rProfile(pid){
               const absent=db.attendance[k]&&db.attendance[k][pid]==='absent';
               return '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:12px">'+
                 '<span><span style="color:var(--text-muted)">'+t.date+'</span> <span class="pl">'+t.focus+'</span></span>'+
-                (present?'<span class="bdg dg">Present</span>':absent?'<span class="bdg dr">Absent</span>':'<span class="bdg dz">—</span>')+
+                (present?'<span class="bdg dg">Present</span>':absent?'<span class="bdg dr">Absent</span>':'<span class="bdg dz">&mdash;</span>')+
               '</div>';
             }).join('')||'<div class="emp" style="padding:1rem">No training sessions logged.</div>'}
           </div>
@@ -1429,7 +1429,7 @@ function rProfile(pid){
   // Guard: if Supabase CDN didn't load, show error and stop
   if(!sb){
     document.getElementById('authStatus').innerHTML =
-      '<span style="color:var(--danger-text)">⚠ Database unavailable — check connection</span>';
+      '<span style="color:var(--danger-text)">(!!) Database unavailable &mdash; check connection</span>';
     document.getElementById('loginBanner').classList.add('hidden');
     return;
   }
