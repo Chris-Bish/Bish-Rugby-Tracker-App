@@ -1128,29 +1128,44 @@ async function setHalf(){
 }
 function resetMD(){stopClock();mds={matchId:mds.matchId,scoreUs:0,scoreThem:0,half:1,running:false,secs:0,timer:null,events:[],notes:[],currentEvType:null};rMD();}
 
-// ── PITCH ROSTER HELPER ───────────────────────────────────
-// Returns players currently on the pitch:
-// Started in the saved squad (slots 1-15 + bench who came on),
-// minus anyone subbed off, plus anyone subbed on.
-// Falls back to all active players if no squad is saved yet.
-function getCurrentPitch(){
-  // Find the squad saved for this match
-  const savedSquad = mds.matchId
-    ? (db.squads||[]).find(s=>s.match_id==mds.matchId)
-    : null;
+// ── PITCH ROSTER HELPERS ─────────────────────────────────
+// Returns the saved squad for the current match, or null
+function getSavedSquad(){
+  return mds.matchId ? (db.squads||[]).find(s=>s.match_id==mds.matchId)||null : null;
+}
 
-  let onPitch = new Set();
-
-  if(savedSquad && savedSquad.slots){
-    // Start with all 23 squad players
-    Object.values(savedSquad.slots).forEach(id=>{ if(id) onPitch.add(Number(id)); });
-  } else {
-    // No saved squad - use all active players as fallback
-    db.players.filter(p=>p.status==='Active').forEach(p=>onPitch.add(p.id));
-    return db.players.filter(p=>onPitch.has(p.id));
+// Returns the 15 starting player IDs (slots '1' through '15')
+function getStarterIds(savedSquad){
+  if(!savedSquad||!savedSquad.slots) return new Set();
+  const ids = new Set();
+  for(let i=1;i<=15;i++){
+    const id = savedSquad.slots[String(i)];
+    if(id) ids.add(Number(id));
   }
+  return ids;
+}
 
-  // Process substitution events in order to track who's actually on pitch
+// Returns the bench player IDs (slots 'b1' through 'b8')
+function getBenchIds(savedSquad){
+  if(!savedSquad||!savedSquad.slots) return new Set();
+  const ids = new Set();
+  for(let i=1;i<=8;i++){
+    const id = savedSquad.slots['b'+i];
+    if(id) ids.add(Number(id));
+  }
+  return ids;
+}
+
+// Returns Set of player IDs currently ON the pitch.
+// Starts with starters (1-15), then applies substitutions:
+//   - subbed off player leaves pitch
+//   - subbed on player (from bench) joins pitch
+function getPitchIds(){
+  const sq = getSavedSquad();
+  if(!sq) return null; // no squad - caller handles fallback
+
+  const onPitch = getStarterIds(sq);
+
   mds.events
     .filter(e=>e.type==='substitution')
     .forEach(e=>{
@@ -1158,7 +1173,25 @@ function getCurrentPitch(){
       if(e.onId)  onPitch.add(e.onId);
     });
 
-  return db.players.filter(p=>onPitch.has(p.id));
+  return onPitch;
+}
+
+// Players currently on the pitch as player objects
+function getCurrentPitch(){
+  const ids = getPitchIds();
+  if(!ids) return db.players.filter(p=>p.status==='Active'); // fallback
+  return db.players.filter(p=>ids.has(p.id));
+}
+
+// Bench players not yet on the pitch (available for substitution)
+function getAvailableBench(){
+  const sq = getSavedSquad();
+  if(!sq) return db.players.filter(p=>p.status==='Active');
+  const benchIds = getBenchIds(sq);
+  const pitchIds = getPitchIds();
+  // Remove anyone who has already come on
+  pitchIds.forEach(id=>benchIds.delete(id));
+  return db.players.filter(p=>benchIds.has(p.id));
 }
 
 function openEv(type){
@@ -1188,32 +1221,41 @@ function openEv(type){
   document.getElementById('evScorerLbl').textContent=type==='try_them'?'Opposition scorer (optional)':'Scorer (our player)';
   document.getElementById('evSetPutLbl').textContent=type==='scrum'?'Scrum put-in':'Lineout throw';
 
-  // Players currently on the pitch (respects substitutions)
-  const pitchPl=getCurrentPitch();
-  // All active players (for subbing ON — bench players not yet on pitch)
-  const activePl=db.players.filter(p=>p.status==='Active');
+  // Players currently ON the pitch (starters 1-15, adjusted for subs)
+  const pitchPl = getCurrentPitch();
+  // Players available to come ON (bench only, not yet used)
+  const benchPl = getAvailableBench();
+  const noSquad = !getSavedSquad();
 
-  // Scorer / card / penalty player — on-pitch players only
+  // Scorer / card / penalty — on-pitch players only
   ['evScorerSel','evCardSel','evPenPlayer'].forEach(sid=>{
     const sel=document.getElementById(sid);
-    sel.innerHTML='<option value="">Select player...</option>';
-    pitchPl.forEach(p=>sel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
-    if(!pitchPl.length) sel.innerHTML='<option value="">No squad loaded</option>';
+    if(noSquad){
+      sel.innerHTML='<option value="">No squad saved for this match</option>';
+    } else {
+      sel.innerHTML='<option value="">Select player...</option>';
+      pitchPl.forEach(p=>sel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+    }
   });
 
-  // Sub OFF — only players currently on pitch
+  // Sub OFF — only the 15 players currently on the pitch
   const subOffSel=document.getElementById('evSubOff');
-  subOffSel.innerHTML='<option value="">Select...</option>';
-  pitchPl.forEach(p=>subOffSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+  if(noSquad){
+    subOffSel.innerHTML='<option value="">No squad saved for this match</option>';
+  } else {
+    subOffSel.innerHTML='<option value="">Player coming off...</option>';
+    pitchPl.forEach(p=>subOffSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+  }
 
-  // Sub ON — all active players not currently on pitch
-  const pitchIds=new Set(pitchPl.map(p=>p.id));
+  // Sub ON — only unused bench players from the saved squad
   const subOnSel=document.getElementById('evSubOn');
-  subOnSel.innerHTML='<option value="">Select...</option>';
-  activePl.filter(p=>!pitchIds.has(p.id)).forEach(p=>subOnSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
-  // If squad not set yet, show everyone
-  if(!subOnSel.options.length||subOnSel.options.length===1){
-    activePl.forEach(p=>subOnSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+  if(noSquad){
+    subOnSel.innerHTML='<option value="">No squad saved for this match</option>';
+  } else if(!benchPl.length){
+    subOnSel.innerHTML='<option value="">No bench players remaining</option>';
+  } else {
+    subOnSel.innerHTML='<option value="">Player coming on...</option>';
+    benchPl.forEach(p=>subOnSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
   }
 
   document.getElementById('evPenTeam').value='';
