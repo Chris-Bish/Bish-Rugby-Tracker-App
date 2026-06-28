@@ -213,6 +213,17 @@ tr:hover td { background: var(--surface-1); }
     <button onclick="show('stats')"><i class="ti ti-chart-bar"></i> Stats</button>
   </div>
 
+  <!-- SEASON SELECTOR BAR -->
+  <div id="seasonBar" style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;padding:8px 12px;background:var(--surface-2);border:0.5px solid rgba(201,162,39,0.2);border-radius:var(--radius);flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--text-muted);font-weight:500"><i class="ti ti-calendar"></i> Season:</span>
+    <select id="seasonSel" style="max-width:120px;font-size:12px" onchange="onSeasonChange()">
+      <option value="all">All seasons</option>
+    </select>
+    <span id="seasonLabel" style="font-size:11px;color:var(--text-muted)"></span>
+    <div style="flex:1"></div>
+    <span style="font-size:11px;color:var(--text-muted)">Stats and records filter by the selected season</span>
+  </div>
+
   <!-- LOGIN BANNER (shown when not authenticated) -->
   <div id="loginBanner" class="card hidden" style="border-color:rgba(201,162,39,0.5);margin-bottom:1rem">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -251,7 +262,7 @@ tr:hover td { background: var(--surface-1); }
       <button class="btn ba" id="btnAddPlayer" onclick="openPM()"><i class="ti ti-plus"></i> Add player</button>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
-      <table><thead><tr><th>Player</th><th>Position</th><th>Age</th><th>Apps</th><th>Tries</th><th>FR</th><th>YC</th><th>RC</th><th>Status</th><th></th></tr></thead>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Showing: <strong>${currentSeason==='all'?'Lifetime':currentSeason}</strong></div><table><thead><tr><th>Player</th><th>Position</th><th>Age</th><th>Apps</th><th>Tries</th><th>FR</th><th>YC</th><th>RC</th><th>Status</th><th></th></tr></thead>
       <tbody id="pTbl"></tbody></table>
     </div>
   </div>
@@ -360,6 +371,7 @@ tr:hover td { background: var(--surface-1); }
   <div class="fr"><div><label>Date</label><input id="md2" type="date"></div><div><label>Competition</label><input id="mc2" placeholder="League / Cup"></div></div>
   <div class="fr"><div><label>Opposition</label><input id="mo2"></div><div><label>Venue</label><select id="mv2"><option>Home</option><option>Away</option><option>Neutral</option></select></div></div>
   <div class="fr"><div><label>Our score</label><input id="ms1" type="number" min="0" placeholder="0"></div><div><label>Their score</label><input id="ms2" type="number" min="0" placeholder="0"></div></div>
+  <div class="fr"><div><label>Season</label><select id="mseason"><option value="2024/25">2024/25</option></select></div><div></div></div>
   <div class="fr"><div><label>Status</label><select id="mst"><option>Upcoming</option><option>Played</option><option>Cancelled</option></select></div><div><label>Man of the match <span style="font-size:10px;color:var(--text-muted)">(squad only)</span></label><select id="mm"><option value="">—</option></select></div></div>
   <div class="ff"><label>The Bishy Way <span style="font-size:10px;color:var(--text-muted)">(squad only)</span></label><select id="mbw"><option value="">—</option></select></div>
   <div class="ff"><label>Try scorers <span style="font-size:10px;color:var(--text-muted)">(Ctrl/Cmd for multiple)</span></label><select id="mts" multiple size="4"></select></div>
@@ -372,6 +384,7 @@ tr:hover td { background: var(--surface-1); }
 <div class="mo" id="moTr"><div class="md">
   <div class="mh"><span class="mt" id="trT">Log training session</span><button class="mc" onclick="cMo('moTr')"><i class="ti ti-x"></i></button></div>
   <div class="fr"><div><label>Date</label><input id="td2" type="date"></div><div><label>Duration (mins)</label><input id="tdur" type="number" placeholder="90"></div></div>
+  <div class="ff"><label>Season</label><select id="tseason"><option value="2024/25">2024/25</option></select></div>
   <div class="ff"><label>Focus</label><select id="tf"><option>General fitness</option><option>Lineouts</option><option>Scrums</option><option>Attack patterns</option><option>Defence</option><option>Kicking</option><option>Set pieces</option><option>Conditioning</option><option>Team run</option><option>Recovery</option><option>Other</option></select></div>
   <div class="ff"><label>Coach's notes</label><textarea id="tn2" placeholder="Session observations…"></textarea></div>
   <div style="display:flex;gap:7px;justify-content:flex-end"><button class="btn" onclick="cMo('moTr')">Cancel</button><button class="btn ba" onclick="saveTr()">Save</button></div>
@@ -427,7 +440,8 @@ try {
 }
 
 // ── LOCAL CACHE ────────────────────────────────────────────
-let db = { players:[], matches:[], training:[], attendance:{} };
+let db = { players:[], matches:[], training:[], attendance:{}, squads:[], seasons:[], seasonApps:{} };
+let currentSeason = "all"; // "all" or a season name like "2024/25"
 let currentUser = null;
 
 // ── POSITIONS ──────────────────────────────────────────────
@@ -497,6 +511,8 @@ async function loadAll(){
       loadTraining().catch(e=>console.error('loadTraining failed:',e)),
       loadAttendance().catch(e=>console.error('loadAttendance failed:',e)),
       loadSquads().catch(e=>console.error('loadSquads failed:',e)),
+      loadSeasons().catch(e=>console.error('loadSeasons failed:',e)),
+      loadSeasonApps().catch(e=>console.error('loadSeasonApps failed:',e)),
     ]);
   } catch(e){
     console.error('loadAll error:', e);
@@ -507,6 +523,38 @@ async function loadAll(){
 async function loadSquads(){
   const { data, error } = await sb.from('squads').select('*');
   if(!error) db.squads = data || [];
+}
+
+async function loadSeasons(){
+  const { data, error } = await sb.from('seasons').select('*').order('name', { ascending:false });
+  if(error || !data) return;
+  db.seasons = data;
+  // Populate all season dropdowns
+  const opts = '<option value="all">All seasons</option>' +
+    data.map(s=>`<option value="${s.name}" ${s.is_current?'selected':''}>${s.name}${s.is_current?' (current)':''}</option>`).join('');
+  const mainSel = document.getElementById('seasonSel');
+  if(mainSel) mainSel.innerHTML = opts;
+  // Set currentSeason to the current season
+  const cur = data.find(s=>s.is_current);
+  currentSeason = cur ? cur.name : 'all';
+  if(mainSel) mainSel.value = currentSeason;
+  updateSeasonLabel();
+  // Populate match and training season dropdowns
+  const seasonOpts = data.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+  ['mseason','tseason'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.innerHTML=seasonOpts; el.value=cur?cur.name:data[0]?.name||'2024/25'; }
+  });
+}
+
+async function loadSeasonApps(){
+  const { data, error } = await sb.from('season_appearances').select('*');
+  if(error || !data) return;
+  db.seasonApps = {};
+  data.forEach(row=>{
+    if(!db.seasonApps[row.player_id]) db.seasonApps[row.player_id]={};
+    db.seasonApps[row.player_id][row.season] = row.appearances;
+  });
 }
 
 async function loadPlayers(){
@@ -557,11 +605,24 @@ async function loadAttendance(){
 const gp  = id => db.players.find(p=>p.id==id);
 const pn  = id => { const p=gp(id); return p?p.first+' '+p.last:'?'; };
 const age = d  => { if(!d)return'&mdash;'; return Math.floor((Date.now()-new Date(d))/31536000000); };
-const tryCount = pid => db.matches.reduce((s,m)=>s+(m.tryScorers||[]).filter(i=>i==pid).length, 0);
-const ycCount  = pid => db.matches.reduce((s,m)=>s+(m.yellowCards||[]).filter(i=>i==pid).length, 0);
-const rcCount  = pid => db.matches.reduce((s,m)=>s+(m.redCards||[]).filter(i=>i==pid).length, 0);
-const attPct   = pid => {
-  const ev=[...db.matches.filter(m=>m.status==='Played').map(m=>'match_'+m.id),...db.training.map(t=>'training_'+t.id)];
+// Season-filtered match/training helpers
+const filteredMatches = (season) => season==='all' ? db.matches : db.matches.filter(m=>m.season===season);
+const filteredTraining = (season) => season==='all' ? db.training : db.training.filter(t=>t.season===season);
+
+const tryCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.tryScorers||[]).filter(i=>i==pid).length, 0);
+const ycCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.yellowCards||[]).filter(i=>i==pid).length, 0);
+const rcCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.redCards||[]).filter(i=>i==pid).length, 0);
+
+// Appearances: use season_appearances table for per-season, players.appearances for lifetime
+const appCount = (pid, season=currentSeason) => {
+  if(season==='all') return gp(pid)?.appearances||0;
+  return (db.seasonApps[pid]&&db.seasonApps[pid][season])||0;
+};
+
+const attPct = (pid, season=currentSeason) => {
+  const ms=filteredMatches(season).filter(m=>m.status==='Played').map(m=>'match_'+m.id);
+  const ts=filteredTraining(season).map(t=>'training_'+t.id);
+  const ev=[...ms,...ts];
   if(!ev.length)return 0;
   return Math.round(ev.filter(k=>db.attendance[k]&&db.attendance[k][pid]==='present').length/ev.length*100);
 };
@@ -574,6 +635,32 @@ const resBdg = m => {
 const stBdg = s => { const mp={Active:'dg',Injured:'dr',Unavailable:'da',Retired:'dz'}; return`<span class="bdg ${mp[s]||'dz'}">${s}</span>`; };
 const fmtClock = s => String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
 const curMin   = () => Math.floor(mds.secs/60)||1;
+
+// ── SEASON MANAGEMENT ────────────────────────────────────
+function onSeasonChange(){
+  currentSeason = document.getElementById('seasonSel').value;
+  updateSeasonLabel();
+  // Re-render whatever section is currently visible
+  const active = document.querySelector('.sec.on');
+  if(active){
+    const id = active.id.replace('s-','');
+    if(id==='dashboard') rDash();
+    if(id==='players')   rPlayers();
+    if(id==='matches')   rMatches();
+    if(id==='training')  rTraining();
+    if(id==='stats')     rStats();
+  }
+}
+
+function updateSeasonLabel(){
+  const el = document.getElementById('seasonLabel');
+  if(!el) return;
+  if(currentSeason==='all'){
+    el.textContent = 'Showing lifetime statistics across all seasons';
+  } else {
+    el.textContent = 'Showing statistics for '+currentSeason+' only';
+  }
+}
 
 // ── NAVIGATION ─────────────────────────────────────────────
 function show(id){
@@ -596,7 +683,7 @@ function show(id){
 // ── DASHBOARD ──────────────────────────────────────────────
 function rDash(){
   const active=db.players.filter(p=>p.status==='Active').length;
-  const played=db.matches.filter(m=>m.status==='Played');
+  const played=filteredMatches(currentSeason).filter(m=>m.status==='Played');
   const wins=played.filter(m=>m.scoreUs>m.scoreThem).length;
   document.getElementById('dStats').innerHTML=`
     <div class="sc"><div class="sl">Active players</div><div class="sv">${active}</div></div>
@@ -617,7 +704,7 @@ function rDash(){
       <span class="pl">${x.p.pos}</span>
       <span style="font-size:12px;font-weight:500">${x.t}</span>
     </div>`).join(''):'<div class="emp">No tries yet.</div>';
-  const nxt=db.matches.filter(m=>m.status==='Upcoming').sort((a,b)=>a.date.localeCompare(b.date))[0];
+  const nxt=db.matches.filter(m=>m.status==='Upcoming').sort((a,b)=>a.date.localeCompare(b.date))[0]; // upcoming always shows regardless of season filter
   document.getElementById('dNext').innerHTML=nxt?`
     <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
       <div><div style="font-size:11px;color:var(--text-muted)">vs</div><div style="font-weight:500">${nxt.opp}</div></div>
@@ -634,7 +721,7 @@ function rPlayers(){
   const f=db.players.filter(p=>(!s||(p.first+' '+p.last).toLowerCase().includes(s))&&(!pf||p.pos===pf));
   document.getElementById('pTbl').innerHTML=f.length?f.map(p=>`<tr>
     <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div style="font-weight:500;cursor:pointer;color:var(--accent-text)" onclick="openProfile(${p.id})">${p.first} ${p.last}</div></div></td>
-    <td><span class="pl">${p.pos||'-'}</span></td><td>${age(p.dob)}</td><td>${p.appearances}</td><td>${tryCount(p.id)}</td>
+    <td><span class="pl">${p.pos||'-'}</span></td><td>${age(p.dob)}</td><td>${appCount(p.id)}</td><td>${tryCount(p.id)}</td>
     <td>${p.front_row_qualified?'<span class="bdg dg">Yes</span>':'&mdash;'}</td>
     <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'&mdash;'}</td>
     <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'&mdash;'}</td>
@@ -689,7 +776,7 @@ async function delP(id){
 
 // ── MATCHES ────────────────────────────────────────────────
 function rMatches(){
-  document.getElementById('mList').innerHTML=[...db.matches].map(m=>`
+  document.getElementById('mList').innerHTML=[...filteredMatches(currentSeason)].map(m=>`
     <div class="card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">
         <div>
@@ -724,6 +811,8 @@ function openMM(id){
   document.getElementById('ms1').value=m?m.scoreUs:'';
   document.getElementById('ms2').value=m?m.scoreThem:'';
   document.getElementById('mn2').value=m?m.notes:'';
+  const curSeas=db.seasons.find(s=>s.is_current);
+  if(document.getElementById('mseason')) document.getElementById('mseason').value=m?m.season||'2024/25':curSeas?curSeas.name:'2024/25';
   document.getElementById('mv2').value=m?m.venue:'Home';
   document.getElementById('mst').value=m?m.status:'Upcoming';
   const mm=document.getElementById('mm'),mbw=document.getElementById('mbw'),mts=document.getElementById('mts'),myc=document.getElementById('myc'),mrc=document.getElementById('mrc');
@@ -755,7 +844,7 @@ async function saveM(){
   const rc=Array.from(document.getElementById('mrc').selectedOptions).map(o=>parseInt(o.value));
   const mv=document.getElementById('mm').value;
   const mbwv=document.getElementById('mbw').value;
-  const mData={date,opp,venue:document.getElementById('mv2').value,score_us:parseInt(document.getElementById('ms1').value)||0,score_them:parseInt(document.getElementById('ms2').value)||0,comp:document.getElementById('mc2').value,motm:mv?parseInt(mv):null,bishy_way:mbwv?parseInt(mbwv):null,status:document.getElementById('mst').value,notes:document.getElementById('mn2').value};
+  const mData={date,opp,venue:document.getElementById('mv2').value,score_us:parseInt(document.getElementById('ms1').value)||0,score_them:parseInt(document.getElementById('ms2').value)||0,comp:document.getElementById('mc2').value,motm:mv?parseInt(mv):null,bishy_way:mbwv?parseInt(mbwv):null,status:document.getElementById('mst').value,notes:document.getElementById('mn2').value,season:document.getElementById('mseason').value||'2024/25'};
 
   let matchId=eMid;
   if(eMid){
@@ -782,7 +871,7 @@ async function delM(id){
 
 // ── TRAINING ───────────────────────────────────────────────
 function rTraining(){
-  document.getElementById('tList').innerHTML=[...db.training].map(t=>{
+  document.getElementById('tList').innerHTML=[...filteredTraining(currentSeason)].map(t=>{
     const att=db.attendance['training_'+t.id]||{};
     const pres=Object.values(att).filter(v=>v==='present').length;
     return`<div class="card">
@@ -807,6 +896,8 @@ function openTM(id){
   document.getElementById('tdur').value=t?t.duration:90;
   document.getElementById('tf').value=t?t.focus:'General fitness';
   document.getElementById('tn2').value=t?t.notes:'';
+  const curS2=db.seasons.find(s=>s.is_current);
+  if(document.getElementById('tseason')) document.getElementById('tseason').value=t?t.season||'2024/25':curS2?curS2.name:'2024/25';
   document.getElementById('trT').textContent=id?'Edit session':'Log training session';
   oMo('moTr');
 }
@@ -815,7 +906,7 @@ function editTr(id){openTM(id);}
 async function saveTr(){
   const date=document.getElementById('td2').value;
   if(!date){toast('Enter a date.');return;}
-  const data={date,focus:document.getElementById('tf').value,duration:parseInt(document.getElementById('tdur').value)||90,notes:document.getElementById('tn2').value};
+  const data={date,focus:document.getElementById('tf').value,duration:parseInt(document.getElementById('tdur').value)||90,notes:document.getElementById('tn2').value,season:document.getElementById('tseason').value||'2024/25'};
   if(eTid){await sb.from('training').update(data).eq('id',eTid);}
   else{await sb.from('training').insert(data);}
   cMo('moTr'); toast('Session saved.'); await loadTraining(); rTraining(); rAttSel();
@@ -1381,10 +1472,10 @@ async function saveEv(){
 function rStats(){rIndSt();rTeamSt();rAttSt();rDiscSt();}
 
 function rIndSt(){
-  document.getElementById('st-ind').innerHTML=`<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Player</th><th>Pos</th><th>Apps</th><th>Tries</th><th>Pts</th><th>Att%</th><th>YC</th><th>RC</th><th>Status</th></tr></thead><tbody>
+  document.getElementById('st-ind').innerHTML=`<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Season: <strong>${currentSeason==='all'?'Lifetime':currentSeason}</strong></div><div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Player</th><th>Pos</th><th>Apps</th><th>Tries</th><th>Pts</th><th>Att%</th><th>YC</th><th>RC</th><th>Status</th></tr></thead><tbody>
     ${[...db.players].sort((a,b)=>tryCount(b.id)-tryCount(a.id)).map(p=>`<tr>
       <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div style="font-size:12px;font-weight:500">${p.first} ${p.last}</div></div></td>
-      <td><span class="pl">${p.pos||'-'}</span></td><td>${p.appearances}</td><td>${tryCount(p.id)}</td><td>${tryCount(p.id)*5}</td>
+      <td><span class="pl">${p.pos||'-'}</span></td><td>${appCount(p.id)}</td><td>${tryCount(p.id)}</td><td>${tryCount(p.id)*5}</td>
       <td><span class="bdg ${attPct(p.id)>=75?'dg':attPct(p.id)>=50?'da':'dr'}">${attPct(p.id)}%</span></td>
       <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'&mdash;'}</td>
       <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'&mdash;'}</td>
@@ -1394,10 +1485,10 @@ function rIndSt(){
 }
 
 function rTeamSt(){
-  const pl=db.matches.filter(m=>m.status==='Played');
+  const pl=filteredMatches(currentSeason).filter(m=>m.status==='Played');
   const w=pl.filter(m=>m.scoreUs>m.scoreThem).length,l=pl.filter(m=>m.scoreUs<m.scoreThem).length;
   const pf=pl.reduce((s,m)=>s+m.scoreUs,0),pa=pl.reduce((s,m)=>s+m.scoreThem,0);
-  document.getElementById('st-team').innerHTML=`<div class="g4" style="margin-bottom:1rem">
+  document.getElementById('st-team').innerHTML=`<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Season: <strong>${currentSeason==='all'?'Lifetime':currentSeason}</strong></div><div class="g4" style="margin-bottom:1rem">
     <div class="sc"><div class="sl">Played</div><div class="sv">${pl.length}</div></div>
     <div class="sc"><div class="sl">Won</div><div class="sv" style="color:var(--success-text)">${w}</div></div>
     <div class="sc"><div class="sl">Lost</div><div class="sv" style="color:var(--danger-text)">${l}</div></div>
@@ -1454,11 +1545,16 @@ function rProfile(pid){
   if(!p){document.getElementById('profileContent').innerHTML='<div class="emp">Player not found.</div>';return;}
 
   const age_val=p.dob?age(p.dob)+'y':'&mdash;';
-  const tc=tryCount(pid);
-  const yc=ycCount(pid);
-  const rc=rcCount(pid);
-  const att=attPct(pid);
+  // Profile always shows ALL seasons (lifetime) — the season bar doesn't affect profiles
+  const tc=tryCount(pid,'all');
+  const yc=ycCount(pid,'all');
+  const rc=rcCount(pid,'all');
+  const att=attPct(pid,'all');
   const pts=tc*5;
+  // Also compute current-season stats for the season breakdown
+  const seasons_with_apps = Object.entries(db.seasonApps[pid]||{})
+    .filter(([s,a])=>a>0)
+    .sort((a,b)=>b[0].localeCompare(a[0]));
 
   // Matches this player appeared in (via attendance or squad)
   const appearedMatches=db.matches.filter(m=>{
@@ -1564,6 +1660,10 @@ function rProfile(pid){
             <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text-muted)">Red cards</span><strong style="color:var(--danger-text)">${rc}</strong></div>
           </div>
         </div>
+        ${seasons_with_apps.length>1?`<div class="card" style="margin-top:0">
+          <div class="ct">Appearances by season</div>
+          ${seasons_with_apps.map(([s,a])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--border);font-size:12px"><span style="color:var(--text-muted)">${s}</span><strong>${a} app${a!==1?'s':''} &middot; ${tryCount(pid,s)} tr${tryCount(pid,s)!==1?'ies':'y'}</strong></div>`).join('')}
+        </div>`:''}
         <div class="card">
           <div class="ct">Training attendance</div>
           <div style="font-size:13px">
