@@ -6,7 +6,7 @@
 <title>Bishopton RFC | Team Manager</title>
 
 <!-- Supabase JS client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 
 <!-- Tabler icons -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
@@ -415,8 +415,16 @@ const SUPABASE_URL = 'https://ljhnyuvzzakeyhygjlri.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqaG55dXZ6emFrZXloeWdqbHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MTc3MjYsImV4cCI6MjA5ODE5MzcyNn0.FmulU_rU8ZNUIu23zi2GJlMLDQ6HKA6IJGAutE2LFkQ';
 // ──────────────────────────────────────────────────────────
 
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Defensive Supabase client creation
+let sb;
+try {
+  const { createClient } = supabase;
+  sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e) {
+  console.error('Supabase failed to initialise:', e);
+  document.getElementById('authStatus').innerHTML =
+    '<span style="color:var(--danger-text)">⚠ Could not connect to database</span>';
+}
 
 // ── LOCAL CACHE ────────────────────────────────────────────
 let db = { players:[], matches:[], training:[], attendance:{} };
@@ -466,10 +474,13 @@ function updateAuthUI(){
 }
 
 async function signIn(){
+  if(!sb){ toast('Database not connected.'); return; }
   const email=document.getElementById('loginEmail').value;
   const pw=document.getElementById('loginPw').value;
-  const { error } = await sb.auth.signInWithPassword({ email, password:pw });
-  if(error){ toast('Sign in failed: '+error.message); } else { toast('Signed in!'); }
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email, password:pw });
+    if(error){ toast('Sign in failed: '+error.message); } else { toast('Signed in!'); }
+  } catch(e){ toast('Sign in error: '+e.message); }
 }
 
 async function signOut(){
@@ -1415,14 +1426,20 @@ function rProfile(pid){
 
 // ── BOOT ──────────────────────────────────────────────────
 (async()=>{
+  // Guard: if Supabase CDN didn't load, show error and stop
+  if(!sb){
+    document.getElementById('authStatus').innerHTML =
+      '<span style="color:var(--danger-text)">⚠ Database unavailable — check connection</span>';
+    document.getElementById('loginBanner').classList.add('hidden');
+    return;
+  }
   try {
     await initAuth();
     await loadAll();
   } catch(e){
     console.error('Boot error:', e);
-    // Even if something fails, clear the spinner and render what we have
-    updateAuthUI();
-    rDash();
+    try { updateAuthUI(); } catch(_){}
+    try { rDash(); } catch(_){}
   }
 })();
 </script>
