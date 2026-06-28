@@ -640,7 +640,6 @@ const curMin   = () => Math.floor(mds.secs/60)||1;
 function onSeasonChange(){
   currentSeason = document.getElementById('seasonSel').value;
   updateSeasonLabel();
-  // Re-render whatever section is currently visible
   const active = document.querySelector('.sec.on');
   if(active){
     const id = active.id.replace('s-','');
@@ -649,6 +648,7 @@ function onSeasonChange(){
     if(id==='matches')   rMatches();
     if(id==='training')  rTraining();
     if(id==='stats')     rStats();
+    if(id==='squad')     rSqSel();
   }
 }
 
