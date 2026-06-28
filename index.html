@@ -227,7 +227,7 @@ tr:hover td { background: var(--surface-1); }
       <button class="btn ba" id="btnAddPlayer" onclick="openPM()"><i class="ti ti-plus"></i> Add player</button>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
-      <table><thead><tr><th>Player</th><th>Position</th><th>Age</th><th>Apps</th><th>Tries</th><th>YC</th><th>RC</th><th>Status</th><th></th></tr></thead>
+      <table><thead><tr><th>Player</th><th>Position</th><th>Age</th><th>Apps</th><th>Tries</th><th>FR</th><th>YC</th><th>RC</th><th>Status</th><th></th></tr></thead>
       <tbody id="pTbl"></tbody></table>
     </div>
   </div>
@@ -315,8 +315,7 @@ tr:hover td { background: var(--surface-1); }
     <select id="pp"><option value="">Select…</option><option>Loosehead Prop</option><option>Hooker</option><option>Tighthead Prop</option><option>Lock</option><option>Flanker</option><option>Number 8</option><option>Scrum-half</option><option>Fly-half</option><option>Wing</option><option>Centre</option><option>Fullback</option></select></div></div>
   <div class="fr"><div><label>Secondary position</label>
     <select id="pp2"><option value="">—</option><option>Loosehead Prop</option><option>Hooker</option><option>Tighthead Prop</option><option>Lock</option><option>Flanker</option><option>Number 8</option><option>Scrum-half</option><option>Fly-half</option><option>Wing</option><option>Centre</option><option>Fullback</option></select></div>
-    <div><label>Jersey #</label><input id="pj" type="number" min="1" max="99"></div></div>
-  <div class="fr"><div><label>Height (cm)</label><input id="ph" type="number"></div><div><label>Weight (kg)</label><input id="pw" type="number"></div></div>
+    <div><label>Front row qualified</label><select id="pfrq"><option value="false">No</option><option value="true">Yes</option></select></div></div>
   <div class="fr"><div><label>Contact</label><input id="pc"></div><div><label>Status</label>
     <select id="ps"><option>Active</option><option>Injured</option><option>Unavailable</option><option>Retired</option></select></div></div>
   <div class="ff"><label>Notes</label><textarea id="pn"></textarea></div>
@@ -565,13 +564,14 @@ function rPlayers(){
   const pf=document.getElementById('pPosF').value;
   const f=db.players.filter(p=>(!s||(p.first+' '+p.last).toLowerCase().includes(s))&&(!pf||p.pos===pf));
   document.getElementById('pTbl').innerHTML=f.length?f.map(p=>`<tr>
-    <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div><div style="font-weight:500">${p.first} ${p.last}</div><div style="font-size:10px;color:var(--text-muted)">#${p.jersey||'—'}</div></div></div></td>
+    <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div style="font-weight:500">${p.first} ${p.last}</div></div></td>
     <td><span class="pl">${p.pos||'—'}</span></td><td>${age(p.dob)}</td><td>${p.appearances}</td><td>${tryCount(p.id)}</td>
+    <td>${p.front_row_qualified?'<span class="bdg dg">Yes</span>':'—'}</td>
     <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'—'}</td>
     <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'—'}</td>
     <td>${stBdg(p.status)}</td>
     <td>${currentUser?`<button class="btn bs" onclick="editP(${p.id})"><i class="ti ti-edit"></i></button> <button class="btn bs bd" onclick="delP(${p.id})"><i class="ti ti-trash"></i></button>`:''}</td>
-  </tr>`).join(''):'<tr><td colspan="9"><div class="emp">No players found.</div></td></tr>';
+  </tr>`).join(''):'<tr><td colspan="10"><div class="emp">No players found.</div></td></tr>';
 }
 
 let ePid=null;
@@ -583,13 +583,14 @@ function openPM(id){
     document.getElementById('pmT').textContent='Edit player';
     document.getElementById('pf').value=p.first; document.getElementById('pl').value=p.last;
     document.getElementById('pd').value=p.dob||''; document.getElementById('pp').value=p.pos||'';
-    document.getElementById('pp2').value=p.pos2||''; document.getElementById('pj').value=p.jersey||'';
-    document.getElementById('ph').value=p.height||''; document.getElementById('pw').value=p.weight||'';
+    document.getElementById('pp2').value=p.pos2||'';
+    document.getElementById('pfrq').value=p.front_row_qualified?'true':'false';
     document.getElementById('pc').value=p.phone||''; document.getElementById('ps').value=p.status;
     document.getElementById('pn').value=p.notes||'';
   } else {
     document.getElementById('pmT').textContent='Add player';
-    ['pf','pl','pd','pj','ph','pw','pc','pn'].forEach(f=>document.getElementById(f).value='');
+    ['pf','pl','pd','pc','pn'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('pfrq').value='false';
     document.getElementById('pp').value=''; document.getElementById('pp2').value=''; document.getElementById('ps').value='Active';
   }
   oMo('moPl');
@@ -599,7 +600,7 @@ function editP(id){openPM(id);}
 async function saveP(){
   const first=document.getElementById('pf').value.trim(), last=document.getElementById('pl').value.trim();
   if(!first||!last){toast('Enter a name.');return;}
-  const data={first,last,dob:document.getElementById('pd').value||null,pos:document.getElementById('pp').value,pos2:document.getElementById('pp2').value,jersey:parseInt(document.getElementById('pj').value)||null,height:parseInt(document.getElementById('ph').value)||null,weight:parseInt(document.getElementById('pw').value)||null,phone:document.getElementById('pc').value,status:document.getElementById('ps').value,notes:document.getElementById('pn').value};
+  const data={first,last,dob:document.getElementById('pd').value||null,pos:document.getElementById('pp').value,pos2:document.getElementById('pp2').value,front_row_qualified:document.getElementById('pfrq').value==='true',phone:document.getElementById('pc').value,status:document.getElementById('ps').value,notes:document.getElementById('pn').value};
   if(ePid){
     const {error}=await sb.from('players').update(data).eq('id',ePid);
     if(error){toast('Error: '+error.message);return;}
@@ -821,7 +822,7 @@ function rPool(){
       <div class="av" style="width:24px;height:24px;font-size:9px">${p.first[0]}${p.last[0]}</div>
       <div style="flex:1"><div style="font-size:12px;font-weight:500">${p.first} ${p.last}</div><div style="font-size:10px;color:var(--text-muted)">${p.pos||'—'}</div></div>
       ${inS?`<span style="font-size:10px;color:var(--success-text);font-weight:500">In squad</span>`:''}
-      <span style="font-size:10px;color:var(--text-muted)">#${p.jersey||'—'}</span>
+      ${p.front_row_qualified?`<span class="bdg dg" style="font-size:10px">FR</span>`:''}
     </div>`;
   }).join('')||'<div class="emp">No players.</div>';
 }
@@ -859,11 +860,11 @@ function rTS(){
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:6px">Starting XV</div>
-      ${starters.map(s=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:4px 0;border-bottom:0.5px solid #eee;font-size:12px;align-items:center"><span style="font-weight:700">${s.num}</span><div><div style="font-weight:600">${s.p?s.p.first+' '+s.p.last:'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${s.pos}</div></div><div style="font-size:10px;color:#888">${s.p?'#'+(s.p.jersey||'—'):''}</div></div>`).join('')}
+      ${starters.map(s=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:4px 0;border-bottom:0.5px solid #eee;font-size:12px;align-items:center"><span style="font-weight:700">${s.num}</span><div><div style="font-weight:600">${s.p?s.p.first+' '+s.p.last:'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${s.pos}</div></div><div style="font-size:10px;color:#888">${s.p&&s.p.front_row_qualified?'FR qualified':''}</div></div>`).join('')}
     </div>
     <div>
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:6px">Replacements</div>
-      ${bench.map(b=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:3px 0;border-bottom:0.5px dotted #eee;font-size:12px;align-items:center"><span style="font-weight:700">${b.num}</span><div><div>${b.p?b.p.first+' '+b.p.last:'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${b.pos}</div></div><div style="font-size:10px;color:#888">${b.p?'#'+(b.p.jersey||'—'):''}</div></div>`).join('')}
+      ${bench.map(b=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:3px 0;border-bottom:0.5px dotted #eee;font-size:12px;align-items:center"><span style="font-weight:700">${b.num}</span><div><div>${b.p?b.p.first+' '+b.p.last:'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${b.pos}</div></div><div style="font-size:10px;color:#888">${b.p&&b.p.front_row_qualified?'FR qualified':''}</div></div>`).join('')}
     </div>
     <div style="margin-top:12px;border-top:1px solid #ddd;padding-top:8px;font-size:10px;color:#666;display:flex;justify-content:space-between">
       <span>Coach: ________________</span><span>${match?match.date:today}</span><span>${match?match.comp||'—':'—'}</span>
@@ -1050,7 +1051,7 @@ function openEv(type){
   ['evScorerSel','evCardSel','evPenPlayer','evSubOff','evSubOn'].forEach(sid=>{
     const sel=document.getElementById(sid);
     sel.innerHTML='<option value="">Select player…</option>';
-    activePl.forEach(p=>sel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last} (#${p.jersey||'?'})</option>`);
+    activePl.forEach(p=>sel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
   });
 
   document.getElementById('evPenTeam').value='';
