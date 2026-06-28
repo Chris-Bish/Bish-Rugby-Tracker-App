@@ -954,22 +954,35 @@ async function setAtt(key,pid,val){
 function rSqSel(){
   const sel=document.getElementById('sqM');
   sel.innerHTML='<option value="">Select match...</option>';
-  db.matches.forEach(m=>sel.innerHTML+=`<option value="${m.id}">${m.date} vs ${m.opp}</option>`);
+  const filtered = currentSeason==='all' ? db.matches : db.matches.filter(m=>m.season===currentSeason);
+  filtered.forEach(m=>sel.innerHTML+=`<option value="${m.id}">${m.date} vs ${m.opp}</option>`);
 }
 
 function loadSquadForMatch(){
   const mid = document.getElementById('sqM').value;
-  squad = {}; // clear current in-memory squad
+  squad = {};
   selSlot = null;
   if(mid){
-    // Find the most recently saved squad for this match
     const saved = (db.squads||[])
       .filter(s=>s.match_id==parseInt(mid))
-      .sort((a,b)=> (b.id||0)-(a.id||0))[0]; // latest save wins
+      .sort((a,b)=> (b.id||0)-(a.id||0))[0];
     if(saved && saved.slots){
-      // Restore slots — keys are strings ('1','2'...'b1','b2'...)
+      // Saved squad exists — restore slot positions
       Object.entries(saved.slots).forEach(([k,v])=>{
         if(v) squad[isNaN(k)?k:Number(k)] = Number(v);
+      });
+    } else {
+      // No saved squad — fall back to attendance data
+      // Show players marked present for this match in bench slots
+      const attKey = 'match_'+mid;
+      const att = db.attendance[attKey] || {};
+      const presentIds = Object.entries(att)
+        .filter(([pid, status]) => status === 'present')
+        .map(([pid]) => Number(pid));
+      // Slot them into bench positions so they're visible
+      presentIds.forEach((pid, i) => {
+        if(i < 15) squad[i+1] = pid;
+        else if(i < 23) squad['b'+(i-14)] = pid;
       });
     }
   }
