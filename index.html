@@ -1013,7 +1013,7 @@ function rPool(){
   const frNote = frSlotSelected
     ? '<div style="font-size:11px;color:var(--warning-text);background:var(--warning-bg);padding:6px 9px;border-bottom:0.5px solid var(--border)"><i class="ti ti-alert-triangle"></i> Front row slot selected &mdash; only FR qualified players can be assigned</div>'
     : '';
-  const rows = db.players.filter(p=>!s||(p.first+' '+p.last).toLowerCase().includes(s)).map(p=>{
+  const rows = db.players.filter(p=>['Active','Injured'].includes(p.status)&&(!s||(p.first+' '+p.last).toLowerCase().includes(s))).map(p=>{
     const inS=sqd.includes(p.id);
     const ua=p.status!=='Active';
     // For a FR slot: non-FR players are ineligible
