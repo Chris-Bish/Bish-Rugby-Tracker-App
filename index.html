@@ -897,19 +897,40 @@ function selSlotFn(n){selSlot=n;rPitch();rPool();}
 function rPool(){
   const s=document.getElementById('poolSrch').value.toLowerCase();
   const sqd=Object.values(squad).filter(Boolean);
-  document.getElementById('pool').innerHTML=db.players.filter(p=>!s||(p.first+' '+p.last).toLowerCase().includes(s)).map(p=>{
-    const inS=sqd.includes(p.id); const ua=p.status!=='Active';
-    return`<div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-bottom:0.5px solid var(--border);cursor:pointer;background:${inS?'var(--success-bg)':'transparent'};opacity:${ua&&!inS?.5:1}" onclick="assignP(${p.id})">
+  const frSlotSelected = FR_SLOTS.has(Number(selSlot));
+  // If a front row slot is selected, show a note above the pool
+  const frNote = frSlotSelected
+    ? '<div style="font-size:11px;color:var(--warning-text);background:var(--warning-bg);padding:6px 9px;border-bottom:0.5px solid var(--border)"><i class="ti ti-alert-triangle"></i> Front row slot selected &mdash; only FR qualified players can be assigned</div>'
+    : '';
+  const rows = db.players.filter(p=>!s||(p.first+' '+p.last).toLowerCase().includes(s)).map(p=>{
+    const inS=sqd.includes(p.id);
+    const ua=p.status!=='Active';
+    // For a FR slot: non-FR players are ineligible
+    const ineligible = frSlotSelected && !p.front_row_qualified;
+    const opacity = (ua&&!inS) || ineligible ? 0.35 : 1;
+    const cursor = ineligible ? 'not-allowed' : 'pointer';
+    const bg = inS ? 'var(--success-bg)' : 'transparent';
+    return`<div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-bottom:0.5px solid var(--border);cursor:${cursor};background:${bg};opacity:${opacity}" onclick="${ineligible?'':'assignP('+p.id+')'}">
       <div class="av" style="width:24px;height:24px;font-size:9px">${p.first[0]}${p.last[0]}</div>
       <div style="flex:1"><div style="font-size:12px;font-weight:500">${p.first} ${p.last}</div><div style="font-size:10px;color:var(--text-muted)">${p.pos||'-'}</div></div>
       ${inS?`<span style="font-size:10px;color:var(--success-text);font-weight:500">In squad</span>`:''}
       ${p.front_row_qualified?`<span class="bdg dg" style="font-size:10px">FR</span>`:''}
+      ${ineligible?`<span style="font-size:10px;color:var(--text-muted)">Not FR</span>`:''}
     </div>`;
   }).join('')||'<div class="emp">No players.</div>';
+  document.getElementById('pool').innerHTML = frNote + rows;
 }
+
+const FR_SLOTS = new Set([1, 2, 3]); // loosehead prop, hooker, tighthead prop
 
 function assignP(pid){
   if(!selSlot){toast('Select a position slot first.');return;}
+  const p = gp(pid);
+  // Block non-FR qualified players from front row slots
+  if(FR_SLOTS.has(Number(selSlot)) && p && !p.front_row_qualified){
+    toast(p.first+' '+p.last+' is not front row qualified and cannot be selected for this position.');
+    return;
+  }
   Object.keys(squad).forEach(k=>{if(squad[k]===pid)delete squad[k]});
   squad[selSlot]=pid; selSlot=null; rPitch(); rPool();
 }
@@ -1247,7 +1268,7 @@ function openEv(type){
     pitchPl.forEach(p=>subOffSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
   }
 
-  // Sub ON — only unused bench players from the saved squad
+  // Sub ON -- any unused bench player; FR badge shown but no restriction enforced
   const subOnSel=document.getElementById('evSubOn');
   if(noSquad){
     subOnSel.innerHTML='<option value="">No squad saved for this match</option>';
@@ -1255,10 +1276,16 @@ function openEv(type){
     subOnSel.innerHTML='<option value="">No bench players remaining</option>';
   } else {
     subOnSel.innerHTML='<option value="">Player coming on...</option>';
-    benchPl.forEach(p=>subOnSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+    benchPl.forEach(p=>subOnSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}${p.front_row_qualified?' (FR)':''}</option>`);
   }
 
   document.getElementById('evPenTeam').value='';
+
+  // No FR restriction on substitutions — any bench player can replace any position
+  // (uncontested scrums apply if a non-FR player replaces a front row player,
+  //  but that is recorded in match notes rather than enforced here)
+  document.getElementById('evSubOff').onchange = null;
+
   oMo('moEv');
 }
 
