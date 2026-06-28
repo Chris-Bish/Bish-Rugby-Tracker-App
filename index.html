@@ -1331,43 +1331,43 @@ function rProfile(pid){
   });
   const mostCommonNum=Object.keys(posNums).sort((a,b)=>posNums[b]-posNums[a])[0]||'—';
 
-  document.getElementById('profileContent').innerHTML=\`
+  document.getElementById('profileContent').innerHTML=`
     <div class="profile-hero">
-      <div class="profile-av">\${p.first[0]}\${p.last[0]}</div>
+      <div class="profile-av">${p.first[0]}${p.last[0]}</div>
       <div style="flex:1">
-        <div class="profile-name">\${p.first} \${p.last}</div>
+        <div class="profile-name">${p.first} ${p.last}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-          \${p.pos?'<span class="pl">'+p.pos+'</span>':''}
-          \${p.pos2?'<span class="pl">'+p.pos2+'</span>':''}
-          \${p.front_row_qualified?'<span class="bdg dg">FR Qualified</span>':''}
-          \${stBdg(p.status)}
+          ${p.pos?'<span class="pl">'+p.pos+'</span>':''}
+          ${p.pos2?'<span class="pl">'+p.pos2+'</span>':''}
+          ${p.front_row_qualified?'<span class="bdg dg">FR Qualified</span>':''}
+          ${stBdg(p.status)}
         </div>
         <div class="profile-meta">
-          \${p.dob?'<span>Age: '+age_val+'</span>':''}
-          \${p.dob?'<span>DOB: '+p.dob+'</span>':''}
-          \${mostCommonNum!=='—'?'<span>Most common shirt #'+mostCommonNum+'</span>':''}
-          \${p.phone?'<span>📞 '+p.phone+'</span>':''}
+          ${p.dob?'<span>Age: '+age_val+'</span>':''}
+          ${p.dob?'<span>DOB: '+p.dob+'</span>':''}
+          ${mostCommonNum!=='—'?'<span>Most common shirt #'+mostCommonNum+'</span>':''}
+          ${p.phone?'<span>📞 '+p.phone+'</span>':''}
         </div>
       </div>
-      \${currentUser?'<button class="btn bs" onclick="editP('+pid+')"><i class="ti ti-edit"></i> Edit</button>':''}
+      ${currentUser?'<button class="btn bs" onclick="editP('+pid+')"><i class="ti ti-edit"></i> Edit</button>':''}
     </div>
 
     <div class="profile-stats">
-      <div class="profile-stat"><div class="profile-stat-val">\${p.appearances}</div><div class="profile-stat-lbl">Appearances</div></div>
-      <div class="profile-stat"><div class="profile-stat-val">\${tc}</div><div class="profile-stat-lbl">Tries</div></div>
-      <div class="profile-stat"><div class="profile-stat-val">\${pts}</div><div class="profile-stat-lbl">Points</div></div>
-      <div class="profile-stat"><div class="profile-stat-val">\${att}%</div><div class="profile-stat-lbl">Attendance</div></div>
-      <div class="profile-stat"><div class="profile-stat-val" style="color:var(--warning-text)">\${yc}</div><div class="profile-stat-lbl">Yellow cards</div></div>
-      <div class="profile-stat"><div class="profile-stat-val" style="color:var(--danger-text)">\${rc}</div><div class="profile-stat-lbl">Red cards</div></div>
-      <div class="profile-stat"><div class="profile-stat-val">⭐\${momMatches.length}</div><div class="profile-stat-lbl">Man of Match</div></div>
-      <div class="profile-stat"><div class="profile-stat-val">🟢\${bishyMatches.length}</div><div class="profile-stat-lbl">Bishy Way</div></div>
+      <div class="profile-stat"><div class="profile-stat-val">${p.appearances}</div><div class="profile-stat-lbl">Appearances</div></div>
+      <div class="profile-stat"><div class="profile-stat-val">${tc}</div><div class="profile-stat-lbl">Tries</div></div>
+      <div class="profile-stat"><div class="profile-stat-val">${pts}</div><div class="profile-stat-lbl">Points</div></div>
+      <div class="profile-stat"><div class="profile-stat-val">${att}%</div><div class="profile-stat-lbl">Attendance</div></div>
+      <div class="profile-stat"><div class="profile-stat-val" style="color:var(--warning-text)">${yc}</div><div class="profile-stat-lbl">Yellow cards</div></div>
+      <div class="profile-stat"><div class="profile-stat-val" style="color:var(--danger-text)">${rc}</div><div class="profile-stat-lbl">Red cards</div></div>
+      <div class="profile-stat"><div class="profile-stat-val">⭐${momMatches.length}</div><div class="profile-stat-lbl">Man of Match</div></div>
+      <div class="profile-stat"><div class="profile-stat-val">🟢${bishyMatches.length}</div><div class="profile-stat-lbl">Bishy Way</div></div>
     </div>
 
     <div class="g2" style="gap:12px;align-items:start">
       <div>
         <div class="card">
-          <div class="ct">Match history (\${appearedMatches.length})</div>
-          \${appearedMatches.length?'<div style="display:grid;grid-template-columns:90px 1fr 50px 80px;gap:8px;padding:4px 0;border-bottom:0.5px solid var(--border);font-size:10px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px"><span>Date</span><span>Opposition</span><span>Score</span><span>Result</span></div>'+
+          <div class="ct">Match history (${appearedMatches.length})</div>
+          ${appearedMatches.length?'<div style="display:grid;grid-template-columns:90px 1fr 50px 80px;gap:8px;padding:4px 0;border-bottom:0.5px solid var(--border);font-size:10px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px"><span>Date</span><span>Opposition</span><span>Score</span><span>Result</span></div>'+
           appearedMatches.map(m=>{
             const scored=(m.tryScorers||[]).filter(i=>i==pid).length;
             const gotYC=(m.yellowCards||[]).includes(pid);
@@ -1392,23 +1392,23 @@ function rProfile(pid){
         </div>
       </div>
       <div>
-        \${p.notes?'<div class="card"><div class="ct">Notes</div><div class="na">'+p.notes+'</div></div>':''}
+        ${p.notes?'<div class="card"><div class="ct">Notes</div><div class="na">'+p.notes+'</div></div>':''}
         <div class="card">
           <div class="ct">Season summary</div>
           <div style="font-size:13px;line-height:2">
-            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Appearances</span><strong>\${p.appearances}</strong></div>
-            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Tries scored</span><strong>\${tc}</strong></div>
-            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Points scored</span><strong>\${pts}</strong></div>
-            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Man of the match</span><strong>\${momMatches.length}</strong></div>
-            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">The Bishy Way</span><strong>\${bishyMatches.length}</strong></div>
-            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Yellow cards</span><strong style="color:var(--warning-text)">\${yc}</strong></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text-muted)">Red cards</span><strong style="color:var(--danger-text)">\${rc}</strong></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Appearances</span><strong>${p.appearances}</strong></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Tries scored</span><strong>${tc}</strong></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Points scored</span><strong>${pts}</strong></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Man of the match</span><strong>${momMatches.length}</strong></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">The Bishy Way</span><strong>${bishyMatches.length}</strong></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Yellow cards</span><strong style="color:var(--warning-text)">${yc}</strong></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text-muted)">Red cards</span><strong style="color:var(--danger-text)">${rc}</strong></div>
           </div>
         </div>
         <div class="card">
           <div class="ct">Training attendance</div>
           <div style="font-size:13px">
-            \${db.training.map(t=>{
+            ${db.training.map(t=>{
               const k='training_'+t.id;
               const present=db.attendance[k]&&db.attendance[k][pid]==='present';
               const absent=db.attendance[k]&&db.attendance[k][pid]==='absent';
@@ -1421,7 +1421,7 @@ function rProfile(pid){
         </div>
       </div>
     </div>
-  \`;
+  `;
 }
 
 // ── BOOT ──────────────────────────────────────────────────
