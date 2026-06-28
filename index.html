@@ -433,7 +433,7 @@ let currentUser = null;
 // ── POSITIONS ──────────────────────────────────────────────
 const POSITIONS=[{n:1,l:'LH Prop',s:'LHP'},{n:2,l:'Hooker',s:'HOO'},{n:3,l:'TH Prop',s:'THP'},{n:4,l:'Lock',s:'LK'},{n:5,l:'Lock',s:'LK'},{n:6,l:'Flanker',s:'FLK'},{n:7,l:'Flanker',s:'FLK'},{n:8,l:'No.8',s:'N8'},{n:9,l:'SH',s:'SH'},{n:10,l:'FH',s:'FH'},{n:11,l:'Wing',s:'WG'},{n:12,l:'CTR',s:'CTR'},{n:13,l:'CTR',s:'CTR'},{n:14,l:'Wing',s:'WG'},{n:15,l:'FB',s:'FB'}];
 const PITCH_ROWS=[[1,2,3],[4,5],[6,7,8],[9,10],[11,12,13,14],[15]];
-const BENCH_POS=['Hooker','LH Prop','TH Prop','Lock','Flanker','SH','FH','Utility'];
+const BENCH_POS=['','','','','','','',''];
 
 let squad={}, selSlot=null;
 let mds={matchId:null,scoreUs:0,scoreThem:0,half:1,running:false,secs:0,timer:null,events:[],notes:[],currentEvType:null};
@@ -887,7 +887,7 @@ function rPitch(){
     const k='b'+(i+1); const pid=squad[k]; const p=pid?gp(pid):null; const sel=selSlot===k;
     return`<span style="display:inline-flex;align-items:center;gap:5px;background:${p?'var(--accent-bg)':'var(--surface-2)'};border:${sel?'1.5px solid #f0c84a':'0.5px solid var(--border)'};border-radius:var(--radius);padding:4px 7px;margin:2px;cursor:pointer;font-size:11px" onclick="selSlotFn('${k}')">
       <span style="font-weight:600;color:${p?'var(--accent-text)':'var(--text-muted)'}">${i+16}</span>
-      <span>${p?p.first+' '+p.last:pos}</span>
+      <span>${p?p.first+' '+p.last:''}</span>
     </span>`;
   }).join('');
 }
@@ -989,7 +989,7 @@ function rTS(){
     </div>
     <div>
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:6px">Replacements</div>
-      ${bench.map(b=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:3px 0;border-bottom:0.5px dotted #eee;font-size:12px;align-items:center"><span style="font-weight:700">${b.num}</span><div><div>${b.p?b.p.first+' '+b.p.last+(b.p.front_row_qualified?'*':''):'<span style="color:#aaa;font-style:italic">TBC</span>'}</div><div style="font-size:10px;color:#777">${b.pos}</div></div><div style="font-size:10px;color:#888">${b.p&&b.p.front_row_qualified?'FR qualified':''}</div></div>`).join('')}
+      ${bench.map(b=>`<div style="display:grid;grid-template-columns:26px 1fr 150px;padding:3px 0;border-bottom:0.5px dotted #eee;font-size:12px;align-items:center"><span style="font-weight:700">${b.num}</span><div><div>${b.p?b.p.first+' '+b.p.last+(b.p.front_row_qualified?'*':''):'<span style="color:#aaa;font-style:italic">TBC</span>'}</div></div><div style="font-size:10px;color:#888">${b.p&&b.p.front_row_qualified?'FR qualified':''}</div></div>`).join('')}
     </div>
     <div style="margin-top:8px;font-size:10px;color:#666;">* Front row qualified</div>
     <div style="margin-top:12px;border-top:1px solid #ddd;padding-top:8px;font-size:10px;color:#666;display:flex;justify-content:space-between">
@@ -1007,7 +1007,7 @@ function printTS(){
 
 function copyTS(){
   const starters=POSITIONS.map(p=>{const pl=squad[p.n]?gp(squad[p.n]):null;return`${p.n}. ${pl?pl.first+' '+pl.last:'TBC'} &mdash; ${p.l}`});
-  const bench=BENCH_POS.map((pos,i)=>{const pl=squad['b'+(i+1)]?gp(squad['b'+(i+1)]):null;return`${i+16}. ${pl?pl.first+' '+pl.last:'TBC'} &mdash; ${pos}`});
+  const bench=BENCH_POS.map((pos,i)=>{const pl=squad['b'+(i+1)]?gp(squad['b'+(i+1)]):null;return`${i+16}. ${pl?pl.first+' '+pl.last:'TBC'}`});
   const club=document.getElementById('clubName').value||'My RFC';
   navigator.clipboard.writeText([club.toUpperCase()+' &mdash; TEAM SHEET','','STARTING XV',...starters,'','REPLACEMENTS',...bench].join('\n')).then(()=>toast('Copied to clipboard!'));
 }
