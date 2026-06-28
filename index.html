@@ -1015,10 +1015,10 @@ function rPool(){
     : '';
   const rows = db.players.filter(p=>['Active','Injured'].includes(p.status)&&(!s||(p.first+' '+p.last).toLowerCase().includes(s))).map(p=>{
     const inS=sqd.includes(p.id);
-    const ua=p.status!=='Active';
+    
     // For a FR slot: non-FR players are ineligible
     const ineligible = frSlotSelected && !p.front_row_qualified;
-    const opacity = (ua&&!inS) || ineligible ? 0.35 : 1;
+    const opacity = ineligible ? 0.35 : 1;
     const cursor = ineligible ? 'not-allowed' : 'pointer';
     const bg = inS ? 'var(--success-bg)' : 'transparent';
     return`<div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-bottom:0.5px solid var(--border);cursor:${cursor};background:${bg};opacity:${opacity}" onclick="${ineligible?'':'assignP('+p.id+')'}">
