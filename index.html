@@ -428,10 +428,18 @@ function toast(msg, dur=2500){
 
 // ── AUTH ───────────────────────────────────────────────────
 async function initAuth(){
-  const { data:{ session } } = await sb.auth.getSession();
-  currentUser = session?.user || null;
-  updateAuthUI();
-  sb.auth.onAuthStateChange((_,s)=>{ currentUser=s?.user||null; updateAuthUI(); });
+  try {
+    const { data, error } = await sb.auth.getSession();
+    if(error) throw error;
+    currentUser = data?.session?.user || null;
+    updateAuthUI();
+    sb.auth.onAuthStateChange((_,s)=>{ currentUser=s?.user||null; updateAuthUI(); });
+  } catch(err) {
+    console.error('Auth error:', err);
+    // Show read-only UI even if auth fails — data loading can still proceed
+    currentUser = null;
+    updateAuthUI();
+  }
 }
 
 function updateAuthUI(){
@@ -460,7 +468,17 @@ async function signOut(){
 
 // ── DATA LOADERS ───────────────────────────────────────────
 async function loadAll(){
-  await Promise.all([ loadPlayers(), loadMatches(), loadTraining(), loadAttendance(), loadSquads() ]);
+  try {
+    await Promise.all([
+      loadPlayers().catch(e=>console.error('loadPlayers failed:',e)),
+      loadMatches().catch(e=>console.error('loadMatches failed:',e)),
+      loadTraining().catch(e=>console.error('loadTraining failed:',e)),
+      loadAttendance().catch(e=>console.error('loadAttendance failed:',e)),
+      loadSquads().catch(e=>console.error('loadSquads failed:',e)),
+    ]);
+  } catch(e){
+    console.error('loadAll error:', e);
+  }
   rDash();
 }
 
@@ -1386,8 +1404,15 @@ function rProfile(pid){
 
 // ── BOOT ──────────────────────────────────────────────────
 (async()=>{
-  await initAuth();
-  await loadAll();
+  try {
+    await initAuth();
+    await loadAll();
+  } catch(e){
+    console.error('Boot error:', e);
+    // Even if something fails, clear the spinner and render what we have
+    updateAuthUI();
+    rDash();
+  }
 })();
 </script>
 </body>
