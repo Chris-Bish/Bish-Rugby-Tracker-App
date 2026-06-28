@@ -1030,6 +1030,8 @@ function rMD(){
     <div class="eb eu" onclick="openEv('pen_us')"><span class="ei"><i class="ti ti-target"></i></span>Penalty kick (us)</div>
     <div class="eb eu" onclick="openEv('drop_us')"><span class="ei"><i class="ti ti-ball-rugby"></i></span>Drop goal (us)</div>
     <div class="eb et" onclick="openEv('try_them')"><span class="ei"><i class="ti ti-circle-x"></i></span>Try (them)</div>
+    <div class="eb eu" onclick="openEv('pen_try_us')"><span class="ei"><i class="ti ti-shield-check"></i></span>Penalty try (us)</div>
+    <div class="eb et" onclick="openEv('pen_try_them')"><span class="ei"><i class="ti ti-shield-x"></i></span>Penalty try (them)</div>
     <div class="eb et" onclick="openEv('conv_them')"><span class="ei"><i class="ti ti-arrow-down-circle"></i></span>Conversion (them)</div>
     <div class="eb et" onclick="openEv('pen_them')"><span class="ei"><i class="ti ti-target"></i></span>Penalty kick (them)</div>
     <div class="eb et" onclick="openEv('drop_them')"><span class="ei"><i class="ti ti-ball-rugby"></i></span>Drop goal (them)</div>
@@ -1070,7 +1072,7 @@ function rMD(){
   </div>`;
 }
 
-const TL_ICONS={try_us:'<i class="ti ti-circle-check" style="color:var(--success-text)"></i>',conv_us:'<i class="ti ti-arrow-up-circle" style="color:var(--success-text)"></i>',pen_us:'<i class="ti ti-target" style="color:var(--success-text)"></i>',drop_us:'<i class="ti ti-ball-rugby" style="color:var(--success-text)"></i>',try_them:'<i class="ti ti-circle-x" style="color:var(--danger-text)"></i>',conv_them:'<i class="ti ti-arrow-down-circle" style="color:var(--danger-text)"></i>',pen_them:'<i class="ti ti-target" style="color:var(--danger-text)"></i>',drop_them:'<i class="ti ti-ball-rugby" style="color:var(--danger-text)"></i>',yellow_card:'<span class="cb yc">YC</span>',red_card:'<span class="cb rc">RC</span>',pen_conceded:'<i class="ti ti-alert-triangle" style="color:var(--warning-text)"></i>',scrum:'<i class="ti ti-arrows-exchange" style="color:var(--accent-text)"></i>',lineout:'<i class="ti ti-arrows-exchange-2" style="color:var(--accent-text)"></i>',substitution:'<i class="ti ti-switch-horizontal" style="color:var(--text-secondary)"></i>',half_time:'<i class="ti ti-player-pause" style="color:var(--text-muted)"></i>'};
+const TL_ICONS={try_us:'<i class="ti ti-circle-check" style="color:var(--success-text)"></i>',conv_us:'<i class="ti ti-arrow-up-circle" style="color:var(--success-text)"></i>',pen_us:'<i class="ti ti-target" style="color:var(--success-text)"></i>',drop_us:'<i class="ti ti-ball-rugby" style="color:var(--success-text)"></i>',try_them:'<i class="ti ti-circle-x" style="color:var(--danger-text)"></i>',pen_try_us:'<i class="ti ti-circle-check" style="color:var(--success-text)"></i>',pen_try_them:'<i class="ti ti-circle-x" style="color:var(--danger-text)"></i>',conv_them:'<i class="ti ti-arrow-down-circle" style="color:var(--danger-text)"></i>',pen_them:'<i class="ti ti-target" style="color:var(--danger-text)"></i>',drop_them:'<i class="ti ti-ball-rugby" style="color:var(--danger-text)"></i>',yellow_card:'<span class="cb yc">YC</span>',red_card:'<span class="cb rc">RC</span>',pen_conceded:'<i class="ti ti-alert-triangle" style="color:var(--warning-text)"></i>',scrum:'<i class="ti ti-arrows-exchange" style="color:var(--accent-text)"></i>',lineout:'<i class="ti ti-arrows-exchange-2" style="color:var(--accent-text)"></i>',substitution:'<i class="ti ti-switch-horizontal" style="color:var(--text-secondary)"></i>',half_time:'<i class="ti ti-player-pause" style="color:var(--text-muted)"></i>'};
 
 function buildTL(){
   if(!mds.events.length)return'<div class="emp" style="padding:1rem">No events yet.</div>';
@@ -1126,15 +1128,50 @@ async function setHalf(){
 }
 function resetMD(){stopClock();mds={matchId:mds.matchId,scoreUs:0,scoreThem:0,half:1,running:false,secs:0,timer:null,events:[],notes:[],currentEvType:null};rMD();}
 
+// ── PITCH ROSTER HELPER ───────────────────────────────────
+// Returns players currently on the pitch:
+// Started in the saved squad (slots 1-15 + bench who came on),
+// minus anyone subbed off, plus anyone subbed on.
+// Falls back to all active players if no squad is saved yet.
+function getCurrentPitch(){
+  // Find the squad saved for this match
+  const savedSquad = mds.matchId
+    ? (db.squads||[]).find(s=>s.match_id==mds.matchId)
+    : null;
+
+  let onPitch = new Set();
+
+  if(savedSquad && savedSquad.slots){
+    // Start with all 23 squad players
+    Object.values(savedSquad.slots).forEach(id=>{ if(id) onPitch.add(Number(id)); });
+  } else {
+    // No saved squad - use all active players as fallback
+    db.players.filter(p=>p.status==='Active').forEach(p=>onPitch.add(p.id));
+    return db.players.filter(p=>onPitch.has(p.id));
+  }
+
+  // Process substitution events in order to track who's actually on pitch
+  mds.events
+    .filter(e=>e.type==='substitution')
+    .forEach(e=>{
+      if(e.offId) onPitch.delete(e.offId);
+      if(e.onId)  onPitch.add(e.onId);
+    });
+
+  return db.players.filter(p=>onPitch.has(p.id));
+}
+
 function openEv(type){
   mds.currentEvType=type;
-  const labels={try_us:'Try &mdash; our team',try_them:'Try &mdash; opposition',conv_us:'Conversion &mdash; our team',conv_them:'Conversion &mdash; opposition',pen_us:'Penalty kick &mdash; our team',pen_them:'Penalty kick &mdash; opposition',drop_us:'Drop goal &mdash; our team',drop_them:'Drop goal &mdash; opposition',yellow_card:'Yellow card',red_card:'Red card',pen_conceded:'Penalty conceded',scrum:'Scrum result',lineout:'Lineout result',substitution:'Substitution'};
+  const labels={try_us:'Try &mdash; our team',try_them:'Try &mdash; opposition',pen_try_us:'Penalty try &mdash; our team',pen_try_them:'Penalty try &mdash; opposition',conv_us:'Conversion &mdash; our team',conv_them:'Conversion &mdash; opposition',pen_us:'Penalty kick &mdash; our team',pen_them:'Penalty kick &mdash; opposition',drop_us:'Drop goal &mdash; our team',drop_them:'Drop goal &mdash; opposition',yellow_card:'Yellow card',red_card:'Red card',pen_conceded:'Penalty conceded',scrum:'Scrum result',lineout:'Lineout result',substitution:'Substitution'};
   document.getElementById('evT').textContent=labels[type]||type;
   document.getElementById('evMin').value=curMin();
   document.getElementById('evNote').value='';
 
   const scoringUs=['try_us','conv_us','pen_us','drop_us'];
-  const showScorer=scoringUs.includes(type)||type==='try_them';
+  const isPenTry=['pen_try_us','pen_try_them'].includes(type);
+  // Penalty try needs no player — it's awarded automatically
+  const showScorer=(scoringUs.includes(type)||type==='try_them') && !isPenTry;
   const showCard=['yellow_card','red_card'].includes(type);
   const isPenC=type==='pen_conceded';
   const isSet=['scrum','lineout'].includes(type);
@@ -1151,12 +1188,33 @@ function openEv(type){
   document.getElementById('evScorerLbl').textContent=type==='try_them'?'Opposition scorer (optional)':'Scorer (our player)';
   document.getElementById('evSetPutLbl').textContent=type==='scrum'?'Scrum put-in':'Lineout throw';
 
+  // Players currently on the pitch (respects substitutions)
+  const pitchPl=getCurrentPitch();
+  // All active players (for subbing ON — bench players not yet on pitch)
   const activePl=db.players.filter(p=>p.status==='Active');
-  ['evScorerSel','evCardSel','evPenPlayer','evSubOff','evSubOn'].forEach(sid=>{
+
+  // Scorer / card / penalty player — on-pitch players only
+  ['evScorerSel','evCardSel','evPenPlayer'].forEach(sid=>{
     const sel=document.getElementById(sid);
     sel.innerHTML='<option value="">Select player...</option>';
-    activePl.forEach(p=>sel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+    pitchPl.forEach(p=>sel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+    if(!pitchPl.length) sel.innerHTML='<option value="">No squad loaded</option>';
   });
+
+  // Sub OFF — only players currently on pitch
+  const subOffSel=document.getElementById('evSubOff');
+  subOffSel.innerHTML='<option value="">Select...</option>';
+  pitchPl.forEach(p=>subOffSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+
+  // Sub ON — all active players not currently on pitch
+  const pitchIds=new Set(pitchPl.map(p=>p.id));
+  const subOnSel=document.getElementById('evSubOn');
+  subOnSel.innerHTML='<option value="">Select...</option>';
+  activePl.filter(p=>!pitchIds.has(p.id)).forEach(p=>subOnSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+  // If squad not set yet, show everyone
+  if(!subOnSel.options.length||subOnSel.options.length===1){
+    activePl.forEach(p=>subOnSel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last}</option>`);
+  }
 
   document.getElementById('evPenTeam').value='';
   oMo('moEv');
@@ -1172,7 +1230,7 @@ async function saveEv(){
   const type=mds.currentEvType;
   const min=parseInt(document.getElementById('evMin').value)||curMin();
   const note=document.getElementById('evNote').value;
-  const scoreMap={try_us:5,conv_us:2,pen_us:3,drop_us:3,try_them:5,conv_them:2,pen_them:3,drop_them:3};
+  const scoreMap={try_us:5,conv_us:2,pen_us:3,drop_us:3,pen_try_us:7,try_them:5,conv_them:2,pen_them:3,drop_them:3,pen_try_them:7};
   let desc='',winner=null,pid=null;
 
   if(['try_us','conv_us','pen_us','drop_us'].includes(type)){
@@ -1182,6 +1240,14 @@ async function saveEv(){
     mds.scoreUs+=scoreMap[type]||0;
     const el=document.getElementById('mdUs'); if(el)el.textContent=mds.scoreUs;
     if(type==='try_us'&&pid&&currentUser) await sb.from('try_scorers').insert({match_id:mds.matchId,player_id:pid});
+  } else if(type==='pen_try_us'){
+    desc='Penalty try (our team) &mdash; 7pts';
+    mds.scoreUs+=7;
+    const el=document.getElementById('mdUs'); if(el)el.textContent=mds.scoreUs;
+  } else if(type==='pen_try_them'){
+    desc='Penalty try (opposition) &mdash; 7pts';
+    mds.scoreThem+=7;
+    const el=document.getElementById('mdTh'); if(el)el.textContent=mds.scoreThem;
   } else if(['try_them','conv_them','pen_them','drop_them'].includes(type)){
     pid=document.getElementById('evScorerSel').value?parseInt(document.getElementById('evScorerSel').value):null;
     const lbl={try_them:'Try (opp)',conv_them:'Conversion (opp)',pen_them:'Penalty kick (opp)',drop_them:'Drop goal (opp)'}[type];
@@ -1213,7 +1279,10 @@ async function saveEv(){
     desc='Sub &mdash; '+(offId?pn(offId):'?')+' off / '+(onId?pn(onId):'?')+' on'+(st!=='Planned substitution'?' ('+st+')':'');
   }
 
-  mds.events.push({type,min,desc,note,winner,pid});
+  // For substitutions, capture offId/onId so pitch roster stays accurate
+  const evOffId=(type==='substitution'&&document.getElementById('evSubOff').value)?parseInt(document.getElementById('evSubOff').value):null;
+  const evOnId=(type==='substitution'&&document.getElementById('evSubOn').value)?parseInt(document.getElementById('evSubOn').value):null;
+  mds.events.push({type,min,desc,note,winner,pid,offId:evOffId,onId:evOnId});
   cMo('moEv');
   const tl=document.getElementById('mdTL'); if(tl)tl.innerHTML=buildTL();
 }
