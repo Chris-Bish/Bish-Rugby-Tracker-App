@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rugby Team Manager</title>
+<title>Bishopton RFC | Team Manager</title>
 
 <!-- Supabase JS client -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -14,46 +14,51 @@
 <style>
 /* ─── THEME ─────────────────────────────────────────────── */
 :root {
-  --bg:          #0f1117;
-  --surface-1:   #1a1d27;
-  --surface-2:   #21253a;
-  --border:      rgba(255,255,255,0.08);
-  --border-strong: rgba(255,255,255,0.16);
-  --text-primary: #e8eaf0;
-  --text-secondary: #9ba3b8;
-  --text-muted:  #5f6780;
-  --accent:      #6366f1;
-  --accent-bg:   rgba(99,102,241,0.15);
-  --accent-text: #a5b4fc;
-  --success:     #22c55e;
-  --success-bg:  rgba(34,197,94,0.12);
-  --success-text:#86efac;
-  --danger:      #ef4444;
-  --danger-bg:   rgba(239,68,68,0.12);
-  --danger-text: #fca5a5;
-  --warning:     #f59e0b;
-  --warning-bg:  rgba(245,158,11,0.12);
-  --warning-text:#fcd34d;
-  --radius:      6px;
-  --font:        -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --mono:        'SF Mono', 'Fira Code', monospace;
+  /* ── Bishopton RFC — Green, Black & Gold ── */
+  --bg:            #0a0f0a;
+  --surface-1:     #111a11;
+  --surface-2:     #182018;
+  --border:        rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.14);
+  --text-primary:  #edf2ed;
+  --text-secondary:#9db89d;
+  --text-muted:    #5a7a5a;
+  /* Gold accent */
+  --accent:        #c9a227;
+  --accent-bg:     rgba(201,162,39,0.15);
+  --accent-text:   #f0c84a;
+  /* Success = club green */
+  --success:       #2d8c3e;
+  --success-bg:    rgba(45,140,62,0.15);
+  --success-text:  #6dcc80;
+  /* Danger = red (unchanged) */
+  --danger:        #e03535;
+  --danger-bg:     rgba(224,53,53,0.13);
+  --danger-text:   #f79090;
+  /* Warning = gold echo */
+  --warning:       #c9a227;
+  --warning-bg:    rgba(201,162,39,0.13);
+  --warning-text:  #f0c84a;
+  --radius:        6px;
+  --font:          -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono:          'SF Mono', 'Fira Code', monospace;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: var(--font); background: var(--bg); color: var(--text-primary); font-size: 14px; min-height: 100vh; }
 a { color: var(--accent-text); }
 
 /* ─── LAYOUT ─────────────────────────────────────────────── */
-#app { max-width: 1200px; margin: 0 auto; padding: 1rem; }
-.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; padding-bottom: .875rem; border-bottom: 0.5px solid var(--border); flex-wrap: wrap; gap: 8px; }
+#app { max-width: 1280px; margin: 0 auto; padding: 1rem; }
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; padding: .75rem 1rem; border-radius: 10px; background: linear-gradient(135deg, #0d1f0d 0%, #1a3a1a 60%, #1f2800 100%); border: 0.5px solid rgba(201,162,39,0.25); flex-wrap: wrap; gap: 8px; }
 .topbar-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .topbar-right { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
-.nav { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.nav { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 1.25rem; padding-bottom: .75rem; border-bottom: 1px solid rgba(201,162,39,0.15); }
 .nav button { padding: 6px 12px; border-radius: var(--radius); border: 0.5px solid var(--border-strong); background: var(--surface-2); color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all .15s; }
-.nav button.on, .nav button:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
+.nav button.on, .nav button:hover { background: rgba(201,162,39,0.18); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
 .sec { display: none; } .sec.on { display: block; }
 
 /* ─── CARDS ──────────────────────────────────────────────── */
-.card { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.card { background: var(--surface-2); border: 0.5px solid rgba(45,140,62,0.18); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
 .ct { font-size: 14px; font-weight: 500; margin-bottom: 10px; }
 .g2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; }
 .g4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap: 8px; margin-bottom: 1rem; }
@@ -69,7 +74,7 @@ input, select, textarea {
   border-radius: var(--radius); color: var(--text-primary); outline: none;
   transition: border-color .15s;
 }
-input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(201,162,39,0.12); }
 textarea { height: 64px; resize: vertical; }
 .fr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
 .ff { margin-bottom: 8px; }
@@ -78,7 +83,7 @@ select option { background: var(--surface-1); }
 /* ─── BUTTONS ────────────────────────────────────────────── */
 .btn { padding: 7px 14px; border-radius: var(--radius); border: 0.5px solid var(--border-strong); background: var(--surface-2); color: var(--text-primary); font-size: 12px; cursor: pointer; font-weight: 500; transition: all .15s; }
 .btn:hover { background: var(--surface-1); }
-.ba { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ba { background: var(--accent); border-color: var(--accent); color: #0a0f0a; font-weight: 600; }
 .ba:hover { opacity: .88; }
 .bd { background: transparent; border-color: var(--danger); color: var(--danger-text); }
 .bs { padding: 3px 8px; font-size: 11px; }
@@ -117,7 +122,7 @@ tr:hover td { background: var(--surface-1); }
 /* ─── TABS ───────────────────────────────────────────────── */
 .tb { display: flex; gap: 4px; margin-bottom: 1rem; border-bottom: 0.5px solid var(--border); }
 .tt { padding: 6px 12px; font-size: 12px; border: none; background: none; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -.5px; }
-.tt.on { color: var(--accent-text); border-bottom-color: var(--accent); font-weight: 500; }
+.tt.on { color: var(--accent-text); border-bottom-color: var(--accent); font-weight: 600; }
 
 /* ─── MISC ───────────────────────────────────────────────── */
 .emp { text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 13px; }
@@ -129,7 +134,7 @@ tr:hover td { background: var(--surface-1); }
 .toast.show { opacity: 1; }
 
 /* ─── MATCH DAY ──────────────────────────────────────────── */
-.sb  { background: linear-gradient(135deg,#1a3a1a,#0f2010); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; color: #fff; border: 0.5px solid rgba(255,255,255,.1); }
+.sb  { background: linear-gradient(135deg,#0d1f0d 0%,#1a3a1a 60%,#1f2800 100%); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; color: #fff; border: 0.5px solid rgba(201,162,39,0.3); }
 .st  { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin-bottom: 6px; }
 .stn { font-size: 13px; font-weight: 500; }
 .sns { display: flex; align-items: center; gap: 14px; }
@@ -160,10 +165,10 @@ tr:hover td { background: var(--surface-1); }
 .note-ts   { font-size: 10px; color: var(--text-muted); font-weight: 500; margin-bottom: 2px; }
 
 /* ─── PITCH ──────────────────────────────────────────────── */
-.pitch { background: linear-gradient(180deg,#1e5c28,#2d7a3a); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
+.pitch { background: linear-gradient(180deg,#14401c,#1e6b2a); border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid rgba(201,162,39,0.2); }
 
 /* ── PLAYER PROFILE ─────────────────────────────────────────── */
-.profile-hero { background: linear-gradient(135deg, var(--surface-2), var(--surface-1)); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+.profile-hero { background: linear-gradient(135deg, #182018, #0d1f0d); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
 .profile-av { width: 72px; height: 72px; border-radius: 50%; background: var(--accent-bg); color: var(--accent-text); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 600; flex-shrink: 0; border: 2px solid var(--accent); }
 .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
 .profile-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
@@ -182,8 +187,14 @@ tr:hover td { background: var(--surface-1); }
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="topbar-title">
-      <i class="ti ti-ball-rugby" style="color:var(--accent-text)"></i>
-      Rugby Team Manager
+      <img src="https://bishoptonrugby.com/wp-content/uploads/2023/08/Bishopton-RFC-White-WEB-copy.png"
+           alt="Bishopton RFC"
+           style="height:36px;width:auto;object-fit:contain"
+           onerror="this.style.display='none';document.getElementById('fallbackTitle').style.display='flex'">
+      <span id="fallbackTitle" style="display:none;align-items:center;gap:8px">
+        <i class="ti ti-ball-rugby" style="color:var(--accent-text)"></i>
+        Bishopton RFC
+      </span>
     </div>
     <div class="topbar-right" id="authStatus">
       <span class="spinner"></span> Connecting…
@@ -203,7 +214,7 @@ tr:hover td { background: var(--surface-1); }
   </div>
 
   <!-- LOGIN BANNER (shown when not authenticated) -->
-  <div id="loginBanner" class="card hidden" style="border-color:var(--accent);margin-bottom:1rem">
+  <div id="loginBanner" class="card hidden" style="border-color:rgba(201,162,39,0.5);margin-bottom:1rem">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="flex:1">
         <div style="font-weight:500;margin-bottom:3px">Sign in to edit data</div>
@@ -851,7 +862,7 @@ function rPitch(){
     row.forEach(n=>{
       const pos=POSITIONS[n-1]; const pid=squad[n]; const p=pid?gp(pid):null; const sel=selSlot===n;
       h+=`<div style="width:56px;text-align:center;cursor:pointer" onclick="selSlotFn(${n})">
-        <div style="width:42px;height:42px;border-radius:50%;border:2px solid ${sel?'#fff':'rgba(255,255,255,.3)'};background:${p?'rgba(255,255,255,.9)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;margin:0 auto 3px;position:relative;font-size:9px;font-weight:500;color:${p?'#1a4a25':'#fff'}">
+        <div style="width:42px;height:42px;border-radius:50%;border:2px solid ${sel?'#f0c84a':'rgba(255,255,255,.25)'};background:${p?'rgba(255,255,255,.9)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;margin:0 auto 3px;position:relative;font-size:9px;font-weight:500;color:${p?'#1a4a25':'#fff'}">
           <span style="position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:#1a4a25;color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:700">${n}</span>
           ${p?`<span style="line-height:1.1;text-align:center;font-size:9px">${p.first[0]}.<br>${p.last}</span>`:`<span style="font-size:8px;opacity:.6">${pos.s}</span>`}
         </div>
@@ -863,7 +874,7 @@ function rPitch(){
   document.getElementById('pitchV').innerHTML=h;
   document.getElementById('benchV').innerHTML=BENCH_POS.map((pos,i)=>{
     const k='b'+(i+1); const pid=squad[k]; const p=pid?gp(pid):null; const sel=selSlot===k;
-    return`<span style="display:inline-flex;align-items:center;gap:5px;background:${p?'var(--accent-bg)':'var(--surface-2)'};border:${sel?'1.5px solid var(--accent-text)':'0.5px solid var(--border)'};border-radius:var(--radius);padding:4px 7px;margin:2px;cursor:pointer;font-size:11px" onclick="selSlotFn('${k}')">
+    return`<span style="display:inline-flex;align-items:center;gap:5px;background:${p?'var(--accent-bg)':'var(--surface-2)'};border:${sel?'1.5px solid #f0c84a':'0.5px solid var(--border)'};border-radius:var(--radius);padding:4px 7px;margin:2px;cursor:pointer;font-size:11px" onclick="selSlotFn('${k}')">
       <span style="font-weight:600;color:${p?'var(--accent-text)':'var(--text-muted)'}">${i+16}</span>
       <span>${p?p.first+' '+p.last:pos}</span>
     </span>`;
