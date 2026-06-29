@@ -375,6 +375,9 @@ tr:hover td { background: var(--surface-1); }
   <div class="fr"><div><label>Status</label><select id="mst"><option>Upcoming</option><option>Played</option><option>Cancelled</option></select></div><div><label>Man of the match <span style="font-size:10px;color:var(--text-muted)">(squad only)</span></label><select id="mm"><option value="">—</option></select></div></div>
   <div class="ff"><label>The Bishy Way <span style="font-size:10px;color:var(--text-muted)">(squad only)</span></label><select id="mbw"><option value="">—</option></select></div>
   <div class="ff"><label>Try scorers <span style="font-size:10px;color:var(--text-muted)">(Ctrl/Cmd for multiple)</span></label><select id="mts" multiple size="4"></select></div>
+  <div class="ff"><label>Conversions <span style="font-size:10px;color:var(--text-muted)">(Ctrl/Cmd for multiple)</span></label><select id="mconvs" multiple size="3"></select></div>
+  <div class="ff"><label>Penalties <span style="font-size:10px;color:var(--text-muted)">(Ctrl/Cmd for multiple)</span></label><select id="mpens" multiple size="3"></select></div>
+  <div class="ff"><label>Drop goals <span style="font-size:10px;color:var(--text-muted)">(Ctrl/Cmd for multiple)</span></label><select id="mdrops" multiple size="3"></select></div>
   <div class="fr"><div><label>Yellow cards</label><select id="myc" multiple size="3"></select></div><div><label>Red cards</label><select id="mrc" multiple size="3"></select></div></div>
   <div class="ff"><label>Match notes</label><textarea id="mn2" placeholder="Report, key moments, tactics…"></textarea></div>
   <div style="display:flex;gap:7px;justify-content:flex-end"><button class="btn" onclick="cMo('moMa')">Cancel</button><button class="btn ba" onclick="saveM()">Save</button></div>
@@ -568,10 +571,11 @@ async function loadMatches(){
 
   // load scorers/cards for each match
   const ids = matches.map(m=>m.id);
-  const [ts, yc, rc] = await Promise.all([
+  const [ts, yc, rc, kk] = await Promise.all([
     sb.from('try_scorers').select('*').in('match_id', ids),
     sb.from('yellow_cards').select('*').in('match_id', ids),
     sb.from('red_cards').select('*').in('match_id', ids),
+    sb.from('kicking').select('*').in('match_id', ids),
   ]);
 
   db.matches = matches.map(m=>({
@@ -579,6 +583,7 @@ async function loadMatches(){
     tryScorers: (ts.data||[]).filter(x=>x.match_id===m.id).map(x=>x.player_id),
     yellowCards: (yc.data||[]).filter(x=>x.match_id===m.id).map(x=>x.player_id),
     redCards: (rc.data||[]).filter(x=>x.match_id===m.id).map(x=>x.player_id),
+    kicking: (kk.data||[]).filter(x=>x.match_id===m.id),
     scoreUs: m.score_us,
     scoreThem: m.score_them,
     bishy_way: m.bishy_way,
@@ -618,6 +623,10 @@ const filteredMatches = (season) => season==='all' ? db.matches : db.matches.fil
 const filteredTraining = (season) => season==='all' ? db.training : db.training.filter(t=>t.season===season);
 
 const tryCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.tryScorers||[]).filter(i=>i==pid).length, 0);
+const convCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='conversion').length, 0);
+const penCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='penalty').length, 0);
+const dropCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='drop_goal').length, 0);
+const ptsCount  = (pid, season=currentSeason) => tryCount(pid,season)*5 + convCount(pid,season)*2 + penCount(pid,season)*3 + dropCount(pid,season)*3;
 const ycCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.yellowCards||[]).filter(i=>i==pid).length, 0);
 const rcCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.redCards||[]).filter(i=>i==pid).length, 0);
 
@@ -709,7 +718,7 @@ function rDash(){
     <div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border)">
       <span style="font-size:11px;color:var(--text-muted);min-width:12px">${i+1}</span>
       <div style="flex:1;font-size:12px;font-weight:500">${x.p.first} ${x.p.last}</div>
-      <span class="pl">${x.p.pos||''}</span>
+      <span class="pl">${x.p.pos}</span>
       <span style="font-size:12px;font-weight:500">${x.t}</span>
     </div>`).join(''):'<div class="emp">No tries yet.</div>';
   const nxt=db.matches.filter(m=>m.status==='Upcoming').sort((a,b)=>a.date.localeCompare(b.date))[0]; // upcoming always shows regardless of season filter
@@ -837,6 +846,12 @@ function openMM(id){
   });
   allPlayers.forEach(p=>{
     mts.innerHTML+=`<option value="${p.id}" ${m&&(m.tryScorers||[]).includes(p.id)?'selected':''}>${p.first} ${p.last}</option>`;
+    const convPids=(m&&m.kicking||[]).filter(k=>k.type==='conversion').map(k=>k.player_id);
+    const penPids=(m&&m.kicking||[]).filter(k=>k.type==='penalty').map(k=>k.player_id);
+    const dropPids=(m&&m.kicking||[]).filter(k=>k.type==='drop_goal').map(k=>k.player_id);
+    mconvs.innerHTML+=`<option value="${p.id}" ${convPids.includes(p.id)?'selected':''}>${p.first} ${p.last}</option>`;
+    mpens.innerHTML+=`<option value="${p.id}" ${penPids.includes(p.id)?'selected':''}>${p.first} ${p.last}</option>`;
+    mdrops.innerHTML+=`<option value="${p.id}" ${dropPids.includes(p.id)?'selected':''}>${p.first} ${p.last}</option>`;
     myc.innerHTML+=`<option value="${p.id}" ${m&&(m.yellowCards||[]).includes(p.id)?'selected':''}>${p.first} ${p.last}</option>`;
     mrc.innerHTML+=`<option value="${p.id}" ${m&&(m.redCards||[]).includes(p.id)?'selected':''}>${p.first} ${p.last}</option>`;
   });
@@ -859,7 +874,7 @@ async function saveM(){
     const {error}=await sb.from('matches').update(mData).eq('id',eMid);
     if(error){toast('Error: '+error.message);return;}
     // Delete old scorers/cards then re-insert
-    await Promise.all([sb.from('try_scorers').delete().eq('match_id',eMid),sb.from('yellow_cards').delete().eq('match_id',eMid),sb.from('red_cards').delete().eq('match_id',eMid)]);
+    await Promise.all([sb.from('try_scorers').delete().eq('match_id',eMid),sb.from('yellow_cards').delete().eq('match_id',eMid),sb.from('red_cards').delete().eq('match_id',eMid),sb.from('kicking').delete().eq('match_id',eMid)]);
   } else {
     const {data,error}=await sb.from('matches').insert(mData).select().single();
     if(error){toast('Error: '+error.message);return;}
@@ -868,6 +883,11 @@ async function saveM(){
   if(ts.length) await sb.from('try_scorers').insert(ts.map(pid=>({match_id:matchId,player_id:pid})));
   if(yc.length) await sb.from('yellow_cards').insert(yc.map(pid=>({match_id:matchId,player_id:pid})));
   if(rc.length) await sb.from('red_cards').insert(rc.map(pid=>({match_id:matchId,player_id:pid})));
+  const convs=Array.from(document.getElementById('mconvs').selectedOptions).map(o=>parseInt(o.value));
+  const pens=Array.from(document.getElementById('mpens').selectedOptions).map(o=>parseInt(o.value));
+  const drops=Array.from(document.getElementById('mdrops').selectedOptions).map(o=>parseInt(o.value));
+  const kickRows=[...convs.map(pid=>({match_id:matchId,player_id:pid,type:'conversion'})),...pens.map(pid=>({match_id:matchId,player_id:pid,type:'penalty'})),...drops.map(pid=>({match_id:matchId,player_id:pid,type:'drop_goal'}))];
+  if(kickRows.length) await sb.from('kicking').insert(kickRows);
   cMo('moMa'); toast('Match saved.'); await loadMatches(); rMatches(); rDash();
 }
 
@@ -1442,6 +1462,9 @@ async function saveEv(){
     mds.scoreUs+=scoreMap[type]||0;
     const el=document.getElementById('mdUs'); if(el)el.textContent=mds.scoreUs;
     if(type==='try_us'&&pid&&currentUser) await sb.from('try_scorers').insert({match_id:mds.matchId,player_id:pid});
+    if(type==='conv_us'&&pid&&currentUser) await sb.from('kicking').insert({match_id:mds.matchId,player_id:pid,type:'conversion'});
+    if(type==='pen_us'&&pid&&currentUser) await sb.from('kicking').insert({match_id:mds.matchId,player_id:pid,type:'penalty'});
+    if(type==='drop_us'&&pid&&currentUser) await sb.from('kicking').insert({match_id:mds.matchId,player_id:pid,type:'drop_goal'});
   } else if(type==='pen_try_us'){
     desc='Penalty try (our team) &mdash; 7pts';
     mds.scoreUs+=7;
@@ -1496,7 +1519,7 @@ function rIndSt(){
   document.getElementById('st-ind').innerHTML=`<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Season: <strong>${currentSeason==='all'?'Lifetime':currentSeason}</strong></div><div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Player</th><th>Pos</th><th>Apps</th><th>Tries</th><th>Pts</th><th>Att%</th><th>YC</th><th>RC</th><th>Status</th></tr></thead><tbody>
     ${[...db.players].sort((a,b)=>tryCount(b.id)-tryCount(a.id)).map(p=>`<tr>
       <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div style="font-size:12px;font-weight:500">${p.first} ${p.last}</div></div></td>
-      <td><span class="pl">${p.pos||'-'}</span></td><td>${appCount(p.id)}</td><td>${tryCount(p.id)}</td><td>${tryCount(p.id)*5}</td>
+      <td><span class="pl">${p.pos||'-'}</span></td><td>${appCount(p.id)}</td><td>${tryCount(p.id)}</td><td>${ptsCount(p.id)}</td>
       <td><span class="bdg ${attPct(p.id)>=75?'dg':attPct(p.id)>=50?'da':'dr'}">${attPct(p.id)}%</span></td>
       <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'&mdash;'}</td>
       <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'&mdash;'}</td>
@@ -1568,10 +1591,13 @@ function rProfile(pid){
   const age_val=p.dob?age(p.dob)+'y':'&mdash;';
   // Profile always shows ALL seasons (lifetime) — the season bar doesn't affect profiles
   const tc=tryCount(pid,'all');
+  const cc=convCount(pid,'all');
+  const pc=penCount(pid,'all');
+  const dc=dropCount(pid,'all');
   const yc=ycCount(pid,'all');
   const rc=rcCount(pid,'all');
   const att=attPct(pid,'all');
-  const pts=tc*5;
+  const pts=ptsCount(pid,'all');
   // Also compute current-season stats for the season breakdown
   const seasons_with_apps = Object.entries(db.seasonApps[pid]||{})
     .filter(([s,a])=>a>0)
@@ -1674,6 +1700,9 @@ function rProfile(pid){
           <div style="font-size:13px;line-height:2">
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Appearances</span><strong>${p.appearances}</strong></div>
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Tries scored</span><strong>${tc}</strong></div>
+            ${cc?`<div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Conversions</span><strong>${cc}</strong></div>`:''}
+            ${pc?`<div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Penalties</span><strong>${pc}</strong></div>`:''}
+            ${dc?`<div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Drop goals</span><strong>${dc}</strong></div>`:''}
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Points scored</span><strong>${pts}</strong></div>
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Man of the match</span><strong>${momMatches.length}</strong></div>
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">The Bishy Way</span><strong>${bishyMatches.length}</strong></div>
