@@ -709,7 +709,7 @@ function rDash(){
     <div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border)">
       <span style="font-size:11px;color:var(--text-muted);min-width:12px">${i+1}</span>
       <div style="flex:1;font-size:12px;font-weight:500">${x.p.first} ${x.p.last}</div>
-      <span class="pl">${x.p.pos}</span>
+      <span class="pl">${x.p.pos||''}</span>
       <span style="font-size:12px;font-weight:500">${x.t}</span>
     </div>`).join(''):'<div class="emp">No tries yet.</div>';
   const nxt=db.matches.filter(m=>m.status==='Upcoming').sort((a,b)=>a.date.localeCompare(b.date))[0]; // upcoming always shows regardless of season filter
