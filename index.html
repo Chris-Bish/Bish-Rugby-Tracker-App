@@ -729,7 +729,7 @@ function rPlayers(){
   const f=db.players.filter(p=>(!s||(p.first+' '+p.last).toLowerCase().includes(s))&&(!pf||p.pos===pf));
   document.getElementById('pTbl').innerHTML=f.length?f.map(p=>`<tr>
     <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div style="font-weight:500;cursor:pointer;color:var(--accent-text)" onclick="openProfile(${p.id})">${p.first} ${p.last}</div></div></td>
-    <td><span class="pl">${p.pos||'-'}</span></td><td>${age(p.dob)}</td><td>${appCount(p.id)}</td><td>${tryCount(p.id)}</td>
+    <td><span class="pl">${p.pos||'-'}</span></td><td>${appCount(p.id)}</td><td>${tryCount(p.id)*5}</td><td>${tryCount(p.id)}</td>
     <td>${p.front_row_qualified?'<span class="bdg dg">Yes</span>':'&mdash;'}</td>
     <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'&mdash;'}</td>
     <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'&mdash;'}</td>
