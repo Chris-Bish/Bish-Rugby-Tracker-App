@@ -631,7 +631,7 @@ const convCountAll = (pid) => convCount(pid,'all') + careerStat(pid,'pre_dig_con
 const penCountAll  = (pid) => penCount(pid,'all')  + careerStat(pid,'pre_dig_pens');
 const dropCountAll = (pid) => dropCount(pid,'all') + careerStat(pid,'pre_dig_drops');
 const ptsCountAll  = (pid) => tryCountAll(pid)*5 + convCountAll(pid)*2 + penCountAll(pid)*3 + dropCountAll(pid)*3;
-const capsAll      = (pid) => { const p=db.players.find(x=>x.id===pid); return (p?p.appearances||0:0) + careerStat(pid,'pre_dig_caps'); };
+const capsAll      = (pid) => { const p=db.players.find(x=>x.id===pid); return p?p.appearances||0:0; };
 const convCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='conversion').length, 0);
 const penCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='penalty').length, 0);
 const dropCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='drop_goal').length, 0);
