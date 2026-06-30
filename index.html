@@ -583,12 +583,14 @@ async function loadMatches(){
 
   // load scorers/cards for each match
   const ids = matches.map(m=>m.id);
-  const [ts, yc, rc, kk] = await Promise.all([
+  const [ts, yc, rc, kk, csRes] = await Promise.all([
     sb.from('try_scorers').select('*').in('match_id', ids),
     sb.from('yellow_cards').select('*').in('match_id', ids),
     sb.from('red_cards').select('*').in('match_id', ids),
     sb.from('kicking').select('*').in('match_id', ids),
+    sb.from('career_stats').select('*'),
   ]);
+  db.careerStats = csRes.data || [];
 
   db.matches = matches.map(m=>({
     ...m,
@@ -635,10 +637,17 @@ const filteredMatches = (season) => season==='all' ? db.matches : db.matches.fil
 const filteredTraining = (season) => season==='all' ? db.training : db.training.filter(t=>t.season===season);
 
 const tryCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.tryScorers||[]).filter(i=>i==pid).length, 0);
-const convCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='conversion').length, 0);
-const penCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='penalty').length, 0);
-const dropCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='drop_goal').length, 0);
+const convCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id==pid&&k.type==='conversion').length, 0);
+const penCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id==pid&&k.type==='penalty').length, 0);
+const dropCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id==pid&&k.type==='drop_goal').length, 0);
 const ptsCount  = (pid, season=currentSeason) => tryCount(pid,season)*5 + convCount(pid,season)*2 + penCount(pid,season)*3 + dropCount(pid,season)*3;
+const careerStat   = (pid, field) => { const cs=(db.careerStats||[]).find(x=>x.player_id==pid); return cs?cs[field]||0:0; };
+const tryCountAll  = (pid) => tryCount(pid,'all')  + careerStat(pid,'pre_dig_tries');
+const convCountAll = (pid) => convCount(pid,'all') + careerStat(pid,'pre_dig_convs');
+const penCountAll  = (pid) => penCount(pid,'all')  + careerStat(pid,'pre_dig_pens');
+const dropCountAll = (pid) => dropCount(pid,'all') + careerStat(pid,'pre_dig_drops');
+const ptsCountAll  = (pid) => tryCountAll(pid)*5 + convCountAll(pid)*2 + penCountAll(pid)*3 + dropCountAll(pid)*3;
+const capsAll      = (pid) => { const p=db.players.find(x=>x.id==pid); return p?p.appearances||0:0; };
 const ycCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.yellowCards||[]).filter(i=>i==pid).length, 0);
 const rcCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.redCards||[]).filter(i=>i==pid).length, 0);
 
@@ -725,7 +734,7 @@ function rDash(){
       <div><div style="font-size:13px;font-weight:500">${m.opp}</div><div style="font-size:11px;color:var(--text-muted)">${m.date} &middot; ${m.venue}</div></div>
       <div style="display:flex;align-items:center;gap:7px">${resBdg(m)}<span style="font-size:13px;font-weight:500">${m.scoreUs}&ndash;${m.scoreThem}</span></div>
     </div>`).join(''):'<div class="emp">No matches yet.</div>';
-  const sc=[...db.players].map(p=>({p,t:tryCount(p.id),pts:ptsCount(p.id)})).filter(x=>x.pts>0).sort((a,b)=>b.pts-a.pts).slice(0,5);
+  const sc=[...db.players].map(p=>({p,t:tryCountAll(p.id),pts:ptsCountAll(p.id)})).filter(x=>x.pts>0).sort((a,b)=>b.pts-a.pts).slice(0,5);
   document.getElementById('dScorers').innerHTML=sc.length?sc.map((x,i)=>`
     <div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border)">
       <span style="font-size:11px;color:var(--text-muted);min-width:12px">${i+1}</span>
@@ -777,7 +786,7 @@ function rPlayers(){
   });
   document.getElementById('pTbl').innerHTML=f.length?f.map(p=>`<tr>
     <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div style="font-weight:500;cursor:pointer;color:var(--accent-text)" onclick="openProfile(${p.id})">${p.first} ${p.last}</div></div></td>
-    <td><span class="pl">${p.pos||'-'}</span></td><td>${appCount(p.id)}</td><td>${ptsCount(p.id)}</td><td>${tryCount(p.id)}</td>
+    <td><span class="pl">${p.pos||'-'}</span></td><td>${capsAll(p.id)}</td><td>${ptsCountAll(p.id)}</td><td>${tryCountAll(p.id)}</td>
     <td>${p.front_row_qualified?'<span class="bdg dg">Yes</span>':'&mdash;'}</td>
     <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'&mdash;'}</td>
     <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'&mdash;'}</td>
@@ -1631,14 +1640,15 @@ function rProfile(pid){
 
   const age_val=p.dob?age(p.dob)+'y':'&mdash;';
   // Profile always shows ALL seasons (lifetime) — the season bar doesn't affect profiles
-  const tc=tryCount(pid,'all');
-  const cc=convCount(pid,'all');
-  const pc=penCount(pid,'all');
-  const dc=dropCount(pid,'all');
+  const tc=tryCountAll(pid);
+  const cc=convCountAll(pid);
+  const pc=penCountAll(pid);
+  const dc=dropCountAll(pid);
+  const caps=capsAll(pid);
   const yc=ycCount(pid,'all');
   const rc=rcCount(pid,'all');
   const att=attPct(pid,'all');
-  const pts=ptsCount(pid,'all');
+  const pts=ptsCountAll(pid);
   // Also compute current-season stats for the season breakdown
   const seasons_with_apps = Object.entries(db.seasonApps[pid]||{})
     .filter(([s,a])=>a>0)
@@ -1739,7 +1749,7 @@ function rProfile(pid){
         <div class="card">
           <div class="ct">Season summary</div>
           <div style="font-size:13px;line-height:2">
-            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Appearances</span><strong>${p.appearances}</strong></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Total caps</span><strong>${caps}</strong></div>
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Tries scored</span><strong>${tc}</strong></div>
             ${cc?`<div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Conversions</span><strong>${cc}</strong></div>`:''}
             ${pc?`<div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Penalties</span><strong>${pc}</strong></div>`:''}
