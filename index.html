@@ -625,7 +625,7 @@ const filteredMatches = (season) => season==='all' ? db.matches : db.matches.fil
 const filteredTraining = (season) => season==='all' ? db.training : db.training.filter(t=>t.season===season);
 
 const tryCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.tryScorers||[]).filter(i=>i==pid).length, 0);
-const careerStat   = (pid, field) => { const cs=(db.careerStats||[]).find(x=>x.player_id===pid); return cs?cs[field]||0:0; };
+const careerStat   = (pid, field) => { const cs=(db.careerStats||[]).find(x=>x.player_id==pid); return cs?cs[field]||0:0; };
 const tryCountAll  = (pid) => tryCount(pid,'all')  + careerStat(pid,'pre_dig_tries');
 const convCountAll = (pid) => convCount(pid,'all') + careerStat(pid,'pre_dig_convs');
 const penCountAll  = (pid) => penCount(pid,'all')  + careerStat(pid,'pre_dig_pens');
