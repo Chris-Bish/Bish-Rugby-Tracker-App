@@ -179,6 +179,9 @@ tr:hover td { background: var(--surface-1); }
 .match-hist-row { display: grid; grid-template-columns: 90px 1fr 60px 60px 80px; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 12px; }
 .match-hist-row:last-child { border-bottom: none; }
 
+.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+.sortable:hover{color:var(--accent-text)}
+.sort-arrow{font-size:9px;margin-left:3px;opacity:0.6}
 </style>
 </head>
 <body>
@@ -262,7 +265,16 @@ tr:hover td { background: var(--surface-1); }
       <button class="btn ba" id="btnAddPlayer" onclick="openPM()"><i class="ti ti-plus"></i> Add player</button>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Showing: <strong>${currentSeason==='all'?'Lifetime':currentSeason}</strong></div><table><thead><tr><th>Player</th><th>Position</th><th>Apps</th><th>Pts</th><th>Tries</th><th>FR</th><th>YC</th><th>RC</th><th>Status</th><th></th></tr></thead>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Showing: <strong>${currentSeason==='all'?'Lifetime':currentSeason}</strong></div><table><thead><tr>
+        <th class="sortable" onclick="sortPlayers('last')">Player<span class="sort-arrow" id="sa-last"></span></th>
+        <th class="sortable" onclick="sortPlayers('pos')">Position<span class="sort-arrow" id="sa-pos"></span></th>
+        <th class="sortable" onclick="sortPlayers('apps')">Apps<span class="sort-arrow" id="sa-apps"></span></th>
+        <th class="sortable" onclick="sortPlayers('pts')">Pts<span class="sort-arrow" id="sa-pts"></span></th>
+        <th class="sortable" onclick="sortPlayers('tries')">Tries<span class="sort-arrow" id="sa-tries"></span></th>
+        <th class="sortable" onclick="sortPlayers('fr')">FR<span class="sort-arrow" id="sa-fr"></span></th>
+        <th class="sortable" onclick="sortPlayers('yc')">YC<span class="sort-arrow" id="sa-yc"></span></th>
+        <th class="sortable" onclick="sortPlayers('rc')">RC<span class="sort-arrow" id="sa-rc"></span></th>
+        <th class="sortable" onclick="sortPlayers('status')">Status<span class="sort-arrow" id="sa-status"></span></th><th></th></tr></thead>
       <tbody id="pTbl"></tbody></table>
     </div>
   </div>
@@ -571,14 +583,12 @@ async function loadMatches(){
 
   // load scorers/cards for each match
   const ids = matches.map(m=>m.id);
-  const [ts, yc, rc, kk, csRes] = await Promise.all([
+  const [ts, yc, rc, kk] = await Promise.all([
     sb.from('try_scorers').select('*').in('match_id', ids),
     sb.from('yellow_cards').select('*').in('match_id', ids),
     sb.from('red_cards').select('*').in('match_id', ids),
     sb.from('kicking').select('*').in('match_id', ids),
-    sb.from('career_stats').select('*'),
   ]);
-  db.careerStats = csRes.data || [];
 
   db.matches = matches.map(m=>({
     ...m,
@@ -625,16 +635,9 @@ const filteredMatches = (season) => season==='all' ? db.matches : db.matches.fil
 const filteredTraining = (season) => season==='all' ? db.training : db.training.filter(t=>t.season===season);
 
 const tryCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.tryScorers||[]).filter(i=>i==pid).length, 0);
-const careerStat   = (pid, field) => { const cs=(db.careerStats||[]).find(x=>x.player_id==pid); return cs?cs[field]||0:0; };
-const tryCountAll  = (pid) => tryCount(pid,'all')  + careerStat(pid,'pre_dig_tries');
-const convCountAll = (pid) => convCount(pid,'all') + careerStat(pid,'pre_dig_convs');
-const penCountAll  = (pid) => penCount(pid,'all')  + careerStat(pid,'pre_dig_pens');
-const dropCountAll = (pid) => dropCount(pid,'all') + careerStat(pid,'pre_dig_drops');
-const ptsCountAll  = (pid) => tryCountAll(pid)*5 + convCountAll(pid)*2 + penCountAll(pid)*3 + dropCountAll(pid)*3;
-const capsAll      = (pid) => { const p=db.players.find(x=>x.id===pid); return p?p.appearances||0:0; };
-const convCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id==pid&&k.type==='conversion').length, 0);
-const penCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id==pid&&k.type==='penalty').length, 0);
-const dropCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id==pid&&k.type==='drop_goal').length, 0);
+const convCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='conversion').length, 0);
+const penCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='penalty').length, 0);
+const dropCount = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.kicking||[]).filter(k=>k.player_id===pid&&k.type==='drop_goal').length, 0);
 const ptsCount  = (pid, season=currentSeason) => tryCount(pid,season)*5 + convCount(pid,season)*2 + penCount(pid,season)*3 + dropCount(pid,season)*3;
 const ycCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.yellowCards||[]).filter(i=>i==pid).length, 0);
 const rcCount  = (pid, season=currentSeason) => filteredMatches(season).reduce((s,m)=>s+(m.redCards||[]).filter(i=>i==pid).length, 0);
@@ -722,7 +725,7 @@ function rDash(){
       <div><div style="font-size:13px;font-weight:500">${m.opp}</div><div style="font-size:11px;color:var(--text-muted)">${m.date} &middot; ${m.venue}</div></div>
       <div style="display:flex;align-items:center;gap:7px">${resBdg(m)}<span style="font-size:13px;font-weight:500">${m.scoreUs}&ndash;${m.scoreThem}</span></div>
     </div>`).join(''):'<div class="emp">No matches yet.</div>';
-  const sc=[...db.players].map(p=>({p,t:tryCountAll(p.id),pts:ptsCountAll(p.id)})).filter(x=>x.pts>0).sort((a,b)=>b.pts-a.pts).slice(0,5);
+  const sc=[...db.players].map(p=>({p,t:tryCount(p.id),pts:ptsCount(p.id)})).filter(x=>x.pts>0).sort((a,b)=>b.pts-a.pts).slice(0,5);
   document.getElementById('dScorers').innerHTML=sc.length?sc.map((x,i)=>`
     <div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border)">
       <span style="font-size:11px;color:var(--text-muted);min-width:12px">${i+1}</span>
@@ -741,13 +744,40 @@ function rDash(){
 }
 
 // ── PLAYERS ────────────────────────────────────────────────
+function sortPlayers(col){
+  if(pSortCol===col){ pSortDir*=-1; } else { pSortCol=col; pSortDir=1; }
+  rPlayers();
+}
+function pSortVal(p,col){
+  switch(col){
+    case 'last':  return (p.last||'').toLowerCase();
+    case 'pos':   return (p.pos||'').toLowerCase();
+    case 'apps':  return capsAll(p.id);
+    case 'pts':   return ptsCountAll(p.id);
+    case 'tries': return tryCountAll(p.id);
+    case 'yc':    return ycCount(p.id);
+    case 'rc':    return rcCount(p.id);
+    case 'fr':    return p.front_row_qualified?1:0;
+    case 'status':return (p.status||'').toLowerCase();
+    default: return '';
+  }
+}
 function rPlayers(){
   const s=document.getElementById('pSrch').value.toLowerCase();
   const pf=document.getElementById('pPosF').value;
-  const f=db.players.filter(p=>(!s||(p.first+' '+p.last).toLowerCase().includes(s))&&(!pf||p.pos===pf));
+  let f=db.players.filter(p=>(!s||(p.first+' '+p.last).toLowerCase().includes(s))&&(!pf||p.pos===pf));
+  f=[...f].sort((a,b)=>{
+    const av=pSortVal(a,pSortCol), bv=pSortVal(b,pSortCol);
+    if(typeof av==='string') return av.localeCompare(bv)*pSortDir;
+    return (av-bv)*pSortDir;
+  });
+  ['last','pos','apps','pts','tries','fr','yc','rc','status'].forEach(c=>{
+    const el=document.getElementById('sa-'+c);
+    if(el) el.textContent = c===pSortCol ? (pSortDir===1?'▲':'▼') : '';
+  });
   document.getElementById('pTbl').innerHTML=f.length?f.map(p=>`<tr>
     <td><div class="pr"><div class="av">${p.first[0]}${p.last[0]}</div><div style="font-weight:500;cursor:pointer;color:var(--accent-text)" onclick="openProfile(${p.id})">${p.first} ${p.last}</div></div></td>
-    <td><span class="pl">${p.pos||'-'}</span></td><td>${capsAll(p.id)}</td><td>${ptsCountAll(p.id)}</td><td>${tryCountAll(p.id)}</td>
+    <td><span class="pl">${p.pos||'-'}</span></td><td>${appCount(p.id)}</td><td>${ptsCount(p.id)}</td><td>${tryCount(p.id)}</td>
     <td>${p.front_row_qualified?'<span class="bdg dg">Yes</span>':'&mdash;'}</td>
     <td>${ycCount(p.id)?`<span class="cb yc">${ycCount(p.id)}</span>`:'&mdash;'}</td>
     <td>${rcCount(p.id)?`<span class="cb rc">${rcCount(p.id)}</span>`:'&mdash;'}</td>
@@ -756,6 +786,7 @@ function rPlayers(){
   </tr>`).join(''):'<tr><td colspan="10"><div class="emp">No players found.</div></td></tr>';
 }
 
+let pSortCol='last', pSortDir=1;
 let ePid=null;
 function openPM(id){
   if(!currentUser){toast('Sign in to add players.');return;}
@@ -1600,15 +1631,14 @@ function rProfile(pid){
 
   const age_val=p.dob?age(p.dob)+'y':'&mdash;';
   // Profile always shows ALL seasons (lifetime) — the season bar doesn't affect profiles
-  const tc=tryCountAll(pid);
-  const cc=convCountAll(pid);
-  const pc=penCountAll(pid);
-  const dc=dropCountAll(pid);
-  const caps=capsAll(pid);
+  const tc=tryCount(pid,'all');
+  const cc=convCount(pid,'all');
+  const pc=penCount(pid,'all');
+  const dc=dropCount(pid,'all');
   const yc=ycCount(pid,'all');
   const rc=rcCount(pid,'all');
   const att=attPct(pid,'all');
-  const pts=ptsCountAll(pid);
+  const pts=ptsCount(pid,'all');
   // Also compute current-season stats for the season breakdown
   const seasons_with_apps = Object.entries(db.seasonApps[pid]||{})
     .filter(([s,a])=>a>0)
@@ -1710,12 +1740,11 @@ function rProfile(pid){
           <div class="ct">Season summary</div>
           <div style="font-size:13px;line-height:2">
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Appearances</span><strong>${p.appearances}</strong></div>
-            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Total caps</span><strong>${caps}</strong></div>
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Tries scored</span><strong>${tc}</strong></div>
             ${cc?`<div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Conversions</span><strong>${cc}</strong></div>`:''}
             ${pc?`<div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Penalties</span><strong>${pc}</strong></div>`:''}
             ${dc?`<div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Drop goals</span><strong>${dc}</strong></div>`:''}
-            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Total points</span><strong>${pts}</strong></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Points scored</span><strong>${pts}</strong></div>
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Man of the match</span><strong>${momMatches.length}</strong></div>
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">The Bishy Way</span><strong>${bishyMatches.length}</strong></div>
             <div style="display:flex;justify-content:space-between;border-bottom:0.5px solid var(--border);padding:4px 0"><span style="color:var(--text-muted)">Yellow cards</span><strong style="color:var(--warning-text)">${yc}</strong></div>
